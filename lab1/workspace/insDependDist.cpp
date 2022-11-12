@@ -26,6 +26,7 @@ ofstream OutFile;
 
 // Convenience data structure
 typedef uint32_t reg_t;
+// 当前指令读 / 写的寄存器列表
 struct Registers {
   vector<reg_t> read;
   vector<reg_t> write;
@@ -33,9 +34,13 @@ struct Registers {
 
 // Global variables
 // The array storing the distance frequency between two dependant instructions
+// 存储两个相关指令之间的距离频率的数组
 UINT64 *insDependDistance;
+// （逻辑）寄存器数量
 INT32 maxSize;
+// 当前指令号（和 PC 同步）
 INT32 insPointer = 0;
+// 上次访问寄存器 i 的指令号为 lastInsPointer[i]
 INT32 lastInsPointer[1024] = {0};
 
 // This function is called before every instruction is executed.
@@ -60,35 +65,45 @@ VOID updateInsDependDistance(VOID *v) {
 
   思考:
   A和B哪个应该先执行? 请通过举例来说明理由.
-  应该 A 先执行，在同一条指令中出现的同一个寄存器，其读寄存器依赖的数据并非来自本条指令，
-  所以需要先遍历 regs-read 更新 lastInsPointer[r]，再遍历 regs->write 更新 lastInsPointer[r]
+  应该 A 先执行，在同一条指令中出现的同一个寄存器，
+  其读寄存器依赖的数据并非来自本条指令，
+  所以需要先遍历 regs-read 更新 lastInsPointer[r]，再遍历 regs->write 更新
+  lastInsPointer[r]
   */
 
   for (vector<reg_t>::iterator it = regs->read.begin(); it != regs->read.end();
        it++) {
+    // 当前读寄存器
     reg_t reg = *it;
 
     if (lastInsPointer[reg] > 0) {
+      // 有访问过这个寄存器
       // Compute the dependency distance
+      // 当前指令号 - 上次访问指令号 = 寄存器依赖距离
       INT32 distance = insPointer - lastInsPointer[reg];
 
       // Populate the insDependDistance array
+      // 统计当前依赖距离出现次数
       if (distance <= maxSize) insDependDistance[distance]++;
     }
   }
 
   // Update the lastInstructionCount for the written registers
+  // 更新写入寄存器的 lastInstructionCount
   for (vector<reg_t>::iterator it = regs->write.begin();
        it != regs->write.end(); it++)
     lastInsPointer[*it] = insPointer;
 }
 
 // Pin calls this function every time a new instruction is encountered
+// 每次遇到新指令时 Pin 都会调用此函数
 VOID Instruction(INS ins, VOID *v) {
   // regs stores the registers read, written by this instruction
+  // regs 存储由该指令读取、写入的寄存器
   Registers *regs = new Registers();
 
   // Find all the register written
+  // 查找所有写入的寄存器
   for (uint32_t iw = 0; iw < INS_MaxNumWRegs(ins); iw++) {
     // 获取当前指令中被写的寄存器(即目的寄存器)
     REG wr = INS_RegW(ins, iw);
@@ -96,20 +111,21 @@ VOID Instruction(INS ins, VOID *v) {
     wr = REG_FullRegName(wr);
     if (!REG_valid(wr)) continue;
 
-    // 将被写寄存器保存到regs向量当中
+    // 将被写寄存器保存到regs->write当中
     if (std::find(regs->write.begin(), regs->write.end(), wr) ==
         regs->write.end())
       regs->write.push_back(wr);
   }
 
   // Find all the registers read
+  // 查找所有读取的寄存器
   for (uint32_t ir = 0; ir < INS_MaxNumRRegs(ins); ir++) {
     // 获取当前指令中被写的寄存器(即目的寄存器)
     REG rr = INS_RegR(ins, ir);
     // 获取寄存器名
     rr = REG_FullRegName(rr);
     if (!REG_valid(rr)) continue;
-    // 将被读寄存器保存到regs向量当中
+    // 将被读寄存器保存到regs->read当中
     if (std::find(regs->read.begin(), regs->read.end(), rr) == regs->read.end())
       regs->read.push_back(rr);
   }
