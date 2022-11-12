@@ -22,7 +22,8 @@ include $(TOOLS_ROOT)/Config/makefile.default.rules
 ##############################################################
 
 COMMAND ?= ls
-PIN_RUN := $(PIN_ROOT)/pin -t obj-intel64/insDependDist.so -- 
+MY_PIN_TOOL ?= insDependDist
+PIN_RUN := $(PIN_ROOT)/pin -t obj-intel64/$(MY_PIN_TOOL).so -- 
 .PHONY: pin-run
 pin-run:
 	$(PIN_RUN) $(COMMAND)
