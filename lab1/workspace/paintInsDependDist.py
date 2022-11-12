@@ -2,9 +2,11 @@ import sys
 import csv
 from matplotlib import pyplot as plt
 
-filename = 'insDependDist.csv'
+# filename = 'insDependDist.csv'
 
-MAX_DISPLAY = int(sys.argv[1]) if len(sys.argv) == 2 else 45
+MAX_DISPLAY = int(sys.argv[1]) if len(sys.argv) >= 2 else 45
+filename = sys.argv[2] if len(sys.argv) >= 3 else 'insDependDist.csv'
+SAVE_FILENAME = sys.argv[3] if len(sys.argv) >= 4 else None
 
 with open(filename) as f:
 	reader = csv.reader(f)
@@ -30,5 +32,8 @@ plt.ylim(0, percent[0] * 1.05)
 
 plt.gca().xaxis.set_major_locator(plt.MultipleLocator(5))
 plt.grid(linestyle = ':')
-plt.show()
+if SAVE_FILENAME is None:
+	plt.show()
+else:
+  plt.savefig(SAVE_FILENAME)
 

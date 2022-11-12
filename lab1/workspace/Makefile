@@ -25,4 +25,5 @@ COMMANDS ?= ls
 .PHONY: pin-run
 pin-run:
 	$(PIN_ROOT)/pin -t obj-intel64/insDependDist.so -- $(COMMANDS)
-	python paintInsDependDist.py
+	mkdir -p imgs
+	python paintInsDependDist.py 45 insDependDist.csv "imgs/insDependDist-$(COMMANDS).png"
