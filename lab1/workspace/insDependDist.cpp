@@ -60,12 +60,9 @@ VOID updateInsDependDistance(VOID *v) {
 
   思考:
   A和B哪个应该先执行? 请通过举例来说明理由.
+  应该 A 先执行，在同一条指令中出现的同一个寄存器，其读寄存器依赖的数据并非来自本条指令，
+  所以需要先遍历 regs-read 更新 lastInsPointer[r]，再遍历 regs->write 更新 lastInsPointer[r]
   */
-
-  // Update the lastInstructionCount for the written registers
-  for (vector<reg_t>::iterator it = regs->write.begin();
-       it != regs->write.end(); it++)
-    lastInsPointer[*it] = insPointer;
 
   for (vector<reg_t>::iterator it = regs->read.begin(); it != regs->read.end();
        it++) {
@@ -79,6 +76,11 @@ VOID updateInsDependDistance(VOID *v) {
       if (distance <= maxSize) insDependDistance[distance]++;
     }
   }
+
+  // Update the lastInstructionCount for the written registers
+  for (vector<reg_t>::iterator it = regs->write.begin();
+       it != regs->write.end(); it++)
+    lastInsPointer[*it] = insPointer;
 }
 
 // Pin calls this function every time a new instruction is encountered

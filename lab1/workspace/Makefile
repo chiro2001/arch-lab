@@ -42,4 +42,4 @@ pin-run-commands:
 	$(PIN_RUN) pwd
 	mv insDependDist.csv insDependDist-pwd.csv
 	mkdir -p imgs
-	python paintInsDependDist.py 20 auto
+	python paintInsDependDist.py 45 auto
