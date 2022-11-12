@@ -21,9 +21,24 @@ include $(TOOLS_ROOT)/Config/makefile.default.rules
 #
 ##############################################################
 
-COMMANDS ?= ls
+COMMAND ?= ls
+PIN_RUN := $(PIN_ROOT)/pin -t obj-intel64/insDependDist.so -- 
 .PHONY: pin-run
 pin-run:
-	$(PIN_ROOT)/pin -t obj-intel64/insDependDist.so -- $(COMMANDS)
+	$(PIN_RUN) $(COMMAND)
 	mkdir -p imgs
-	python paintInsDependDist.py 45 insDependDist.csv "imgs/insDependDist-$(COMMANDS).png"
+	python paintInsDependDist.py 45 insDependDist.csv "imgs/insDependDist-$(COMMAND).png"
+
+.PHONY: pin-run-commands
+pin-run-commands:
+	rm -rf *.csv
+	$(PIN_RUN) clear
+	mv insDependDist.csv insDependDist-clear.csv
+	$(PIN_RUN) ls
+	mv insDependDist.csv insDependDist-ls.csv
+	$(PIN_RUN) cat Makefile
+	mv insDependDist.csv "insDependDist-cat Makefile.csv"
+	$(PIN_RUN) pwd
+	mv insDependDist.csv insDependDist-pwd.csv
+	mkdir -p imgs
+	python paintInsDependDist.py 20 auto
