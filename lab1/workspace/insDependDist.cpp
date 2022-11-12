@@ -50,36 +50,35 @@ VOID updateInsDependDistance(VOID *v) {
   // regs->write contains the registers written.
   Registers *regs = (Registers *)v;
 
-  /* TODO:
-          本函数需完成以下2个任务：
-                  A. 遍历regs->read向量,
-     利用lastInsPointer数组计算当前指令的被读寄存器的依赖距离，
-                          即对任意的r属于regs->read, 其依赖距离 = 当前PC值 -
-     lastInsPointer[r]. B. 遍历regs->write向量,
-     利用lastInsPointer数组记录当前指令的被写寄存器所对应的PC值，
-                          即对任意的r属于regs->write,
-     将当前PC值赋值给lastInsPointer[r]. 思考: A和B哪个应该先执行?
-     请通过举例来说明理由.
+  /*
+  本函数需完成以下2个任务：
+  A.
+  遍历regs->read向量,利用lastInsPointer数组计算当前指令的被读寄存器的依赖距离，
+          即对任意的r属于regs->read, 其依赖距离 = 当前PC值 - lastInsPointer[r].
+  B.遍历regs->write向量,利用lastInsPointer数组记录当前指令的被写寄存器所对应的
+          PC值， 即对任意的r属于regs->write,将当前PC值赋值给lastInsPointer[r].
+
+  思考:
+  A和B哪个应该先执行? 请通过举例来说明理由.
   */
 
   // Update the lastInstructionCount for the written registers
   for (vector<reg_t>::iterator it = regs->write.begin();
        it != regs->write.end(); it++)
-    lastInsPointer[*it] =  // TODO
+    lastInsPointer[*it] = insPointer;
 
-        for (vector<reg_t>::iterator it = regs->read.begin();
-             it != regs->read.end(); it++) {
-      reg_t reg = *it;
+  for (vector<reg_t>::iterator it = regs->read.begin(); it != regs->read.end();
+       it++) {
+    reg_t reg = *it;
 
-      if (lastInsPointer[reg] > 0) {
-        // Compute the dependency distance
-        INT32 distance =  // TODO
+    if (lastInsPointer[reg] > 0) {
+      // Compute the dependency distance
+      INT32 distance = insPointer - lastInsPointer[reg];
 
-            // Populate the insDependDistance array
-            if (distance <= maxSize)
-        // TODO
-      }
+      // Populate the insDependDistance array
+      if (distance <= maxSize) insDependDistance[distance]++;
     }
+  }
 }
 
 // Pin calls this function every time a new instruction is encountered
@@ -103,11 +102,14 @@ VOID Instruction(INS ins, VOID *v) {
 
   // Find all the registers read
   for (uint32_t ir = 0; ir < INS_MaxNumRRegs(ins); ir++) {
-    REG rr = /* TODO */
-
-    /*
-            TODO
-    */
+    // 获取当前指令中被写的寄存器(即目的寄存器)
+    REG rr = INS_RegR(ins, ir);
+    // 获取寄存器名
+    rr = REG_FullRegName(rr);
+    if (!REG_valid(rr)) continue;
+    // 将被读寄存器保存到regs向量当中
+    if (std::find(regs->read.begin(), regs->read.end(), rr) == regs->read.end())
+      regs->read.push_back(rr);
   }
 
   // Insert a call to the analysis function -- updateInsDependDistance -- before
