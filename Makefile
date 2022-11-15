@@ -11,3 +11,5 @@ submit:
 	@rm -rf ../.submit
 	@mv ../submit.zip .
 	-@mv submit.zip $(STUID)_$(NAME)_ARCH实验$(LAB).zip
+
+.PHONY: submit

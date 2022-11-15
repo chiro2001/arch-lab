@@ -2,6 +2,72 @@
 
 <center>梁鑫嵘 200110619</center>
 
+## 插桩工具的分析
+
+观察最简单的指令级插桩分析代码 `inscount0.cpp`，它的作用是记数被插桩程序实际执行的指令条数。
+
+在 `main` 函数中，程序完成 Pin 工具的初始化、打开输出文件、注册插桩分析函数、注册退出函数等完成运行环境的初始化，然后调用 `PIN_StartProgram()` 开始插桩执行程序。
+
+```C
+/* ===================================================================== */
+/* Main                                                                  */
+/* ===================================================================== */
+/*   argc, argv are the entire command line: pin -t <toolname> -- ...    */
+/* ===================================================================== */
+
+int main(int argc, char* argv[]) {
+    // Initialize pin
+    if (PIN_Init(argc, argv)) return Usage();
+    OutFile.open(KnobOutputFile.Value().c_str());
+    // Register Instruction to be called to instrument instructions
+    INS_AddInstrumentFunction(Instruction, 0);
+    // Register Fini to be called when the application exits
+    PIN_AddFiniFunction(Fini, 0);
+    // Start the program, never returns
+    PIN_StartProgram();
+    return 0;
+}
+```
+
+被注册的插桩分析函数为 `void Instruction(INS ins, VOID *v)`：
+
+```C
+// Pin calls this function every time a new instruction is encountered
+VOID Instruction(INS ins, VOID* v) {
+    // Insert a call to docount before every instruction, no arguments are passed
+    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_END);
+}
+```
+
+这个函数调用 Pin 插桩声明 API `INS_InsertCall` 函数，声明当遇到新的指令需要执行时，首先执行 `docount` 这一函数。
+
+```C
+// This function is called before every instruction is executed
+VOID docount() { icount++; }
+```
+
+`docount` 函数非常简单，每次被调用会让全局变量自增 1 以完成对指令的记数。
+
+于是我们需要实现的逻辑也就是被注册的插桩分析函数，以及在插桩分析函数内被声明的函数。
+
+## 回答问题
+
+1. 可以发现，指令依赖距离分布图存在很长的尾巴。试分析尾巴可能是由哪些寄存器引起的？为什么？
+
+   > 在 x86 平台上，尾巴可能是由基地址寄存器、源/目标索引寄存器、状态寄存器、控制寄存器、系统地址寄存器等引起；在 RISCV 平台上，尾巴可能由全局地址寄存器 `gp`、栈指针寄存器 `sp`、保存寄存器等引起。
+   >
+   > 这些寄存器往往和内存寻址、返回地址、CPU 参数控制等相关。在内存寻址方面，现代计算机系统的一般操作是将一个或一些寄存器用于保存相对寻址地址，用于全局变量或栈变量等，由于程序的集中性，在实际执行时不经常改变这些寄存器的值。而返回地址寄存器在函数调用过程中也往往保持着函数的返回地址，在函数执行过程中不经常发生改变。一些参数用于保存 CPU 陷入前后的参数，在不处理陷入操作时也往往不发生改变。
+
+2. 设有2个不同架构的处理器平台，现分别于其上运行由相同版本编译器所编译的测试程序，并分别在这两个平台上使用 `insDependDist` 工具对该测试程序进行插桩分析，得到如图6-1所示的指令依赖距离分布图。请问架构A、B之中谁具有更多的寄存器？为什么？
+
+   ![img](lab1.assets/6-1.png)
+
+   > 观察图像，架构 A 对应图像较为陡峭，而架构 B 对应图像相对平缓。说明架构 A 的平均指令依赖距离更小，架构 B 的平均指令依赖距离更大。有更多寄存器的架构，在编译程序的时候就可以分配出更多的空闲寄存器，相对的平均指令依赖距离也就更小，所以架构 A 应当拥有比架构 B 多的寄存器。
+
+3. 现有基于相同ISA设计的架构A和架构B。若架构A采用停顿法解决流水线数据冲突，架构B则采用数据转发法，当二者执行相同的测试程序时，它们的指令依赖距离分布图是否相同？为什么？
+
+   > 我们测量指令依赖距离分布数据，是测量程序的实际执行指令流中指令的依赖距离数据，而这一被 CPU 抽象出的指令流的顺序和 CPU 本身流水线数据冲突无关。CPU 解决流水线数据冲突后，在写回级（最后一级）使得指令生效（提交/退休）的指令流顺序是由程序本身的逻辑保证的，CPU 解决流水线数据冲突的方法，停顿法、数据转发法、寄存器重命名法等，都不在我们的测量范围内，也不在指令依赖距离的测量范围内。
+
 ## 编写 insDependDist 插桩工具
 
 ### Instruction 函数
@@ -67,7 +133,7 @@ MOV A, B
 ADD A, A, A
 ```
 
-假设有如上两条指令，如果先执行 B，在解析 `ADD A,A,A` 这条指令时，`lastInsPointer[A]` 被首先更新为当前 PC，然后再执行 A，就会得到当前指令的寄存器 `A` 依赖距离为 0，但是寄存器 `A` 的数据应当来自上一条指令而不是这一条指令，所以应当先执行 A。
+假设有如上两条指令，如果先执行 B，在解析 `ADD A,A,A` 这条指令时，`lastInsPointer[A]` 被首先更新为当前 PC，然后再执行 A，就会得到当前指令的寄存器 `A` 依赖距离为 0，但是寄存器 `A` 的数据应当来自上一条指令 `MOV A,B` 而不是这一条指令，所以应当先执行 A。
 
 ```C
 VOID updateInsDependDistance(VOID *v) {
@@ -344,3 +410,5 @@ CoreMark 1.0 : 19408.682150 / GCC12.2.0 -O2   -lrt / Heap
 从图上可以看出，因为运行的是同一个相同参数的二进制文件，测得寄存器距离是相同的。
 
 而由运行数据可知，修改后的基于轨迹的插桩，在 CoreMark 这一 Workload 下性能相比基于指令的插桩高出了约 50.89%，基于轨迹的较粗粒度的插桩效率比基于指令的较细粒度的插桩性能好上不少。
+
+不过综合比较不插桩和插桩时的性能表现，插桩后的程序运行效率仅有原来的 1%~3%，所以插桩对性能能造成的影响是非常大的，编写合适粒度、合适效率的插桩代码是必要的。
