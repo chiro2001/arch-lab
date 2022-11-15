@@ -24,7 +24,7 @@ include $(TOOLS_ROOT)/Config/makefile.default.rules
 COMMAND ?= ls
 MY_PIN_TOOL ?= insDependDist
 PIN_RUN := $(PIN_ROOT)/pin -t obj-intel64/$(MY_PIN_TOOL).so -- 
-PY_FILE := paintInsDependDist.py
+PY_FILE := paint_$(MY_PIN_TOOL).py
 .PHONY: pin-run
 pin-run:
 	$(PIN_RUN) $(COMMAND)
@@ -43,4 +43,4 @@ pin-run-commands:
 	$(PIN_RUN) pwd
 	mv $(MY_PIN_TOOL).csv $(MY_PIN_TOOL)-pwd.csv
 	mkdir -p imgs
-	python paint$(MY_PIN_TOOL).py 45 auto
+	python $(PY_FILE) 45 auto

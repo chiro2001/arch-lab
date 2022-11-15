@@ -18,14 +18,19 @@ ofstream OutFile;
 // make it static to help the compiler optimize docount
 static UINT64 icount = 0;
 
-// This function is called before every instruction is executed
-VOID docount() { icount++; }
+// This function is called before every block
+VOID docount(UINT32 c) { icount += c; }
 
-// Pin calls this function every time a new instruction is encountered
-VOID Instruction(INS ins, VOID* v)
+// Pin calls this function every time a new basic block is encountered
+// It inserts a call to docount
+VOID Trace(TRACE trace, VOID* v)
 {
-    // Insert a call to docount before every instruction, no arguments are passed
-    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)docount, IARG_END);
+    // Visit every basic block  in the trace
+    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
+    {
+        // Insert a call to docount before every bbl, passing the number of instructions
+        BBL_InsertCall(bbl, IPOINT_BEFORE, (AFUNPTR)docount, IARG_UINT32, BBL_NumIns(bbl), IARG_END);
+    }
 }
 
 KNOB< string > KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "inscount.out", "specify output file name");
@@ -53,8 +58,6 @@ INT32 Usage()
 /* ===================================================================== */
 /* Main                                                                  */
 /* ===================================================================== */
-/*   argc, argv are the entire command line: pin -t <toolname> -- ...    */
-/* ===================================================================== */
 
 int main(int argc, char* argv[])
 {
@@ -64,7 +67,7 @@ int main(int argc, char* argv[])
     OutFile.open(KnobOutputFile.Value().c_str());
 
     // Register Instruction to be called to instrument instructions
-    INS_AddInstrumentFunction(Instruction, 0);
+    TRACE_AddInstrumentFunction(Trace, 0);
 
     // Register Fini to be called when the application exits
     PIN_AddFiniFunction(Fini, 0);

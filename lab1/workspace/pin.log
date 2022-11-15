@@ -1,3 +1,3 @@
 Pin: pin-3.24-98612-6bd5931f2
 Copyright 2002-2022 Intel Corporation.
-E:  Unable to resolve tool path.obj-intel64/insDependDist.so. Check tools path and tool extension.
+E:  insDependDist2.cpp:105 Inserting IPOINT_AFTER with invalid instruction (     2 0x00007f9281d00733 call 0x7f9281d013a0). See INS_IsValidForIpointAfter()
