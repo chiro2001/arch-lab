@@ -3,14 +3,17 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <vector>
+
 #include "pin.H"
 using std::cerr;
 using std::endl;
 using std::ios;
 using std::ofstream;
 using std::string;
+using std::vector;
 
 ofstream OutFile;
 
@@ -20,7 +23,7 @@ struct Registers {
   vector<reg_t> write;
 };
 
-UINT64 *insDependDistance;
+UINT64* insDependDistance;
 INT32 maxSize;
 INT32 insPointer = 0;
 INT32 lastInsPointer[1024] = {0};
@@ -31,63 +34,80 @@ static UINT64 icount = 0;
 
 // This function is called before every block
 // Use the fast linkage for calls
-VOID PIN_FAST_ANALYSIS_CALL docount(ADDRINT c) { icount += c; }
+VOID PIN_FAST_ANALYSIS_CALL docount(void* p) {
+  BBL bbl = *((BBL*)p);
+  for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
+    icount++;
+  }
+}
 
 // Pin calls this function every time a new basic block is encountered
 // It inserts a call to docount
-VOID Trace(TRACE trace, VOID* v)
-{
-    // Visit every basic block  in the trace
-    for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl))
-    {
-        // Insert a call to docount for every bbl, passing the number of instructions.
-        // IPOINT_ANYWHERE allows Pin to schedule the call anywhere in the bbl to obtain best performance.
-        // Use a fast linkage for the call.
-        BBL_InsertCall(bbl, IPOINT_ANYWHERE, AFUNPTR(docount), IARG_FAST_ANALYSIS_CALL, IARG_UINT32, BBL_NumIns(bbl), IARG_END);
-    }
+VOID Trace(TRACE trace, VOID* v) {
+  printf("Trace!");
+  fflush(stdout);
+  // Visit every basic block in the trace
+  for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
+    BBL_InsertCall(bbl, IPOINT_BEFORE, AFUNPTR(docount),
+                   IARG_PTR, &bbl, IARG_END);
+  }
 }
 
-KNOB< string > KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "inscount.out", "specify output file name");
+// This knob sets the output file name
+KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o",
+                            "insDependDist2.csv",
+                            "specify the output file name");
+
+// This knob will set the maximum distance between two dependant instructions in
+// the program
+KNOB<string> KnobMaxDistance(KNOB_MODE_WRITEONCE, "pintool", "s", "100",
+                             "specify the maximum distance between two "
+                             "dependant instructions in the program");
 
 // This function is called when the application exits
-VOID Fini(INT32 code, VOID* v)
-{
-    // Write to a file since cout and cerr maybe closed by the application
-    OutFile.setf(ios::showbase);
-    OutFile << "Count " << icount << endl;
-    OutFile.close();
+VOID Fini(INT32 code, VOID *v) {
+  printf("Fini!");
+  // Write to a file since cout and cerr maybe closed by the application
+  OutFile.setf(ios::showbase);
+  for (INT32 i = 0; i < maxSize; i++) OutFile << insDependDistance[i] << ",";
+  OutFile.close();
 }
 
 /* ===================================================================== */
 /* Print Help Message                                                    */
 /* ===================================================================== */
 
-INT32 Usage()
-{
-    cerr << "This tool counts the number of dynamic instructions executed" << endl;
-    cerr << endl << KNOB_BASE::StringKnobSummary() << endl;
-    return -1;
+INT32 Usage() {
+  cerr << "This tool counts the number of dynamic instructions executed"
+       << endl;
+  cerr << endl << KNOB_BASE::StringKnobSummary() << endl;
+  return -1;
 }
 
 /* ===================================================================== */
 /* Main                                                                  */
 /* ===================================================================== */
 
-int main(int argc, char* argv[])
-{
-    // Initialize pin
-    if (PIN_Init(argc, argv)) return Usage();
+int main(int argc, char* argv[]) {
+  printf("main!");
+  // Initialize pin
+  if (PIN_Init(argc, argv)) return Usage();
 
-    OutFile.open(KnobOutputFile.Value().c_str());
+  OutFile.open(KnobOutputFile.Value().c_str());
+  maxSize = atoi(KnobMaxDistance.Value().c_str());
 
-    // Register Instruction to be called to instrument instructions
-    TRACE_AddInstrumentFunction(Trace, 0);
+  // Initializing depdendancy Distance
+  insDependDistance = new UINT64[maxSize];
+  memset((void *)insDependDistance, 0, sizeof(UINT64) * maxSize);
 
-    // Register Fini to be called when the application exits
-    PIN_AddFiniFunction(Fini, 0);
+  // Register Instruction to be called to instrument instructions
+  TRACE_AddInstrumentFunction(Trace, 0);
 
-    // Start the program, never returns
-    PIN_StartProgram();
+  // Register Fini to be called when the application exits
+  PIN_AddFiniFunction(Fini, 0);
 
-    return 0;
+  // Start the program, never returns
+  PIN_StartProgram();
+
+  return 0;
 }

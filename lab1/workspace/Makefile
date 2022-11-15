@@ -5,12 +5,12 @@
 ##############################################################
 
 # If the tool is built out of the kit, PIN_ROOT must be specified in the make invocation and point to the kit root.
-PIN_ROOT ?= ../
-ifdef PIN_ROOT
-CONFIG_ROOT := $(PIN_ROOT)/source/tools/Config
-else
+PIN_ROOT ?= /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux
+# ifdef PIN_ROOT
+# CONFIG_ROOT := $(PIN_ROOT)/source/tools/Config
+# else
 CONFIG_ROOT := ./Config
-endif
+# endif
 include $(CONFIG_ROOT)/makefile.config
 include makefile.rules
 include $(TOOLS_ROOT)/Config/makefile.default.rules
@@ -24,22 +24,23 @@ include $(TOOLS_ROOT)/Config/makefile.default.rules
 COMMAND ?= ls
 MY_PIN_TOOL ?= insDependDist
 PIN_RUN := $(PIN_ROOT)/pin -t obj-intel64/$(MY_PIN_TOOL).so -- 
+PY_FILE := paintInsDependDist.py
 .PHONY: pin-run
 pin-run:
 	$(PIN_RUN) $(COMMAND)
 	mkdir -p imgs
-	python paintInsDependDist.py 45 insDependDist.csv "imgs/insDependDist-$(COMMAND).png"
+	python $(PY_FILE) 45 $(MY_PIN_TOOL).csv "imgs/$(MY_PIN_TOOL)-$(COMMAND).png"
 
 .PHONY: pin-run-commands
 pin-run-commands:
 	rm -rf *.csv
 	$(PIN_RUN) clear
-	mv insDependDist.csv insDependDist-clear.csv
+	mv $(MY_PIN_TOOL).csv $(MY_PIN_TOOL)-clear.csv
 	$(PIN_RUN) ls
-	mv insDependDist.csv insDependDist-ls.csv
+	mv $(MY_PIN_TOOL).csv $(MY_PIN_TOOL)-ls.csv
 	$(PIN_RUN) cat Makefile
-	mv insDependDist.csv "insDependDist-cat Makefile.csv"
+	mv $(MY_PIN_TOOL).csv "$(MY_PIN_TOOL)-cat Makefile.csv"
 	$(PIN_RUN) pwd
-	mv insDependDist.csv insDependDist-pwd.csv
+	mv $(MY_PIN_TOOL).csv $(MY_PIN_TOOL)-pwd.csv
 	mkdir -p imgs
-	python paintInsDependDist.py 45 auto
+	python paint$(MY_PIN_TOOL).py 45 auto

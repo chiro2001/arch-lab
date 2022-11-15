@@ -23,8 +23,8 @@ def process(filename: str, color='red', marker='x', line=':'):
         for i in range(MAX_DISPLAY):
             percent.append(int(depend_row[i]) / allDepend)
 
-    plt.plot([n for n in range(1, MAX_DISPLAY + 1)],
-             percent[0:MAX_DISPLAY], c=color, marker=marker, linestyle=line)
+    plt.plot([n for n in range(2, MAX_DISPLAY + 1)],
+             percent[1:MAX_DISPLAY], c=color, marker=marker, linestyle=line)
 
     plt.xlim(0, MAX_DISPLAY)
     # plt.ylim(0, percent[0] * 1.05)
