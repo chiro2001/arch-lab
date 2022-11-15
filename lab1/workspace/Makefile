@@ -29,7 +29,7 @@ PY_FILE := paint_$(MY_PIN_TOOL).py
 pin-run:
 	$(PIN_RUN) $(COMMAND)
 	mkdir -p imgs
-	python $(PY_FILE) 45 $(MY_PIN_TOOL).csv "imgs/$(MY_PIN_TOOL)-$(COMMAND).png"
+	python $(PY_FILE) 45 $(MY_PIN_TOOL).csv "imgs/$(MY_PIN_TOOL)-$(subst ./,,$(COMMAND)).png"
 
 .PHONY: pin-run-commands
 pin-run-commands:
@@ -44,3 +44,11 @@ pin-run-commands:
 	mv $(MY_PIN_TOOL).csv $(MY_PIN_TOOL)-pwd.csv
 	mkdir -p imgs
 	python $(PY_FILE) 45 auto
+
+perf:
+	$(MAKE) -C . pin-run COMMAND=./coremark.exe MY_PIN_TOOL=$(MY_PIN_TOOL)
+
+perf-before:
+	$(MAKE) -C . perf MY_PIN_TOOL=insDependDist
+perf-after:
+	$(MAKE) -C . perf MY_PIN_TOOL=insDependDist2

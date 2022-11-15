@@ -45,7 +45,7 @@ fig = plt.figure(dpi=150, figsize=(7, 4))
 
 if filename == 'auto':
     files = [f for f in os.listdir() if f.endswith('.csv') and f != 'insDependDist.csv']
-    commands = [f.replace('insDependDist2-', '').replace('.csv', '') for f in files]
+    commands = [f.replace('insDependDist2-', '').replace('.csv', '').replace('./', '') for f in files]
     SAVE_FILENAME = "imgs/insDependDist2-all.png"
     # print("commands:", commands)
     for i, command in enumerate(commands):
