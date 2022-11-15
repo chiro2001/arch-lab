@@ -30,17 +30,14 @@ INT32 lastInsPointer[1024] = {0};
 
 // This function is called before every block
 // Use the fast linkage for calls
-VOID PIN_FAST_ANALYSIS_CALL docount(void* insts_ptr) {
-  // printf("insts_ptr : %p\n", insts_ptr);
-  if (!insts_ptr) return;
+VOID PIN_FAST_ANALYSIS_CALL updateInsDependDistance(void* insts_ptr) {
   vector<Registers*>* insts = (vector<Registers*>*)(insts_ptr);
   for (auto regs : *insts) {
-    if (regs) ++insPointer;
+    ++insPointer;
     for (vector<reg_t>::iterator it = regs->read.begin();
          it != regs->read.end(); it++) {
       // 当前读寄存器
       reg_t reg = *it;
-
       if (lastInsPointer[reg] > 0) {
         // 有访问过这个寄存器
         // 当前指令号 - 上次访问指令号 = 寄存器依赖距离
@@ -58,19 +55,14 @@ VOID PIN_FAST_ANALYSIS_CALL docount(void* insts_ptr) {
 }
 
 // Pin calls this function every time a new basic block is encountered
-// It inserts a call to docount
+// It inserts a call to updateInsDependDistance
 VOID Trace(TRACE trace, VOID* v) {
-  fflush(stdout);
   // Visit every basic block in the trace
   for (BBL bbl = TRACE_BblHead(trace); BBL_Valid(bbl); bbl = BBL_Next(bbl)) {
     vector<Registers*>* insts = new vector<Registers*>();
-    // printf("insts @ %p\n", insts);
     for (INS ins = BBL_InsHead(bbl); INS_Valid(ins); ins = INS_Next(ins)) {
-      // regs stores the registers read, written by this instruction
       // regs 存储由该指令读取、写入的寄存器
       Registers* regs = new Registers();
-
-      // Find all the register written
       // 查找所有写入的寄存器
       for (uint32_t iw = 0; iw < INS_MaxNumWRegs(ins); iw++) {
         // 获取当前指令中被写的寄存器(即目的寄存器)
@@ -84,8 +76,6 @@ VOID Trace(TRACE trace, VOID* v) {
             regs->write.end())
           regs->write.push_back(wr);
       }
-
-      // Find all the registers read
       // 查找所有读取的寄存器
       for (uint32_t ir = 0; ir < INS_MaxNumRRegs(ins); ir++) {
         // 获取当前指令中被写的寄存器(即目的寄存器)
@@ -100,7 +90,7 @@ VOID Trace(TRACE trace, VOID* v) {
       }
       insts->push_back(regs);
     }
-    BBL_InsertCall(bbl, IPOINT_BEFORE, AFUNPTR(docount), IARG_PTR, insts,
+    BBL_InsertCall(bbl, IPOINT_BEFORE, AFUNPTR(updateInsDependDistance), IARG_PTR, insts,
                    IARG_END);
   }
 }
