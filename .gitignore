@@ -14,3 +14,5 @@ obj-intel64/
 obj-ia32/
 *.exe
 *.so
+
+/*.zip
