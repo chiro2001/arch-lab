@@ -1,0 +1,24 @@
+% https://tex.stackexchange.com/questions/62010/can-i-access-system-environment-variables-from-latex-for-instance-home
+
+\ProvidesPackage{getenv}
+\RequirePackage{ifxetex,ifluatex}
+
+\ifxetex
+  \RequirePackage{catchfile}
+  \newcommand\getenv[2][]{%
+    \immediate\write18{kpsewhich --var-value #2 > \jobname.tmp}%
+    \CatchFileDef{\temp}{\jobname.tmp}{\endlinechar=-1}%
+    \if\relax\detokenize{#1}\relax\temp\else\let#1\temp\fi}
+\else
+  \ifluatex
+    \newcommand\getenv[2][]{%
+      \edef\temp{\directlua{tex.sprint(
+        kpse.var_value("\luatexluaescapestring{#2}") or "" ) }}%
+      \if\relax\detokenize{#1}\relax\temp\else\let#1\temp\fi}
+  \else
+    \RequirePackage{catchfile}
+    \newcommand{\getenv}[2][]{%
+      \CatchFileEdef{\temp}{"|kpsewhich --var-value #2"}{\endlinechar=-1}%
+      \if\relax\detokenize{#1}\relax\temp\else\let#1\temp\fi}
+  \fi
+\fi

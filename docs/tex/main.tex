@@ -1,0 +1,38 @@
+\documentclass[a4paper]{article}
+\usepackage{archreport}
+\usepackage{listings}
+\usepackage[theme=witiko/graphicx/http]{markdown}
+\usepackage{getenv}
+
+\getenv[\LAB]{LAB}
+\getenv[\TITLE]{TITLE}
+\getenv[\AUTHOR]{AUTHOR}
+\getenv[\STUID]{STUID}
+\getenv[\STUCLASS]{STUCLASS}
+
+\title{\TITLE}
+\author{\AUTHOR}
+\stuid{\STUID}
+\stuclass{\STUCLASS}
+
+\markdownSetup{
+    rendererPrototypes = {
+        image = {\includegraphics[clip,width=0.8\textwidth]{#2}},
+        codeSpan = {\texttt{#1}},
+        % Render inline code via `\texttt`.
+        },
+    fencedCode = true
+}
+
+\date{\today}
+\location{T2210}
+
+\begin{document}
+    \pagestyle{plain}
+    \makereporttitle
+    % \maketitle
+
+    \markdownInput{../public.md}
+
+    \markdownInput{../\LAB/\LAB.md}
+\end{document}

@@ -1,0 +1,101 @@
+% copyright: Hans Wan
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{archreport}
+
+% Importing Packages
+\RequirePackage[hmargin=2.54cm,vmargin=3.17cm]{geometry}
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{booktabs}
+\RequirePackage{multirow}
+\RequirePackage{tikz, pgfplots}
+\RequirePackage[fontset=none,zihao=-4,scheme=chinese,heading=true,punct=kaiming]{ctex}
+\RequirePackage{fancybox}
+\RequirePackage{mathdots}
+\RequirePackage{float}
+\RequirePackage{graphicx}
+\RequirePackage[font={small}]{caption}
+\RequirePackage{hyperref}
+\RequirePackage{bookmark}
+
+%% Hyperref
+\AtBeginDocument {%
+    \hypersetup{%
+        pdftitle={\@title},%
+        hidelinks,%
+        bookmarksnumbered=true%
+    }
+}
+
+% Fonts
+\setCJKmainfont[BoldFont=HYCuJianHeiJ,ItalicFont=HYKaiTiS,Mapping=quote]{HYShuSongErS} 
+\RequirePackage{newtxtext}
+\RequirePackage[upint]{newtxmath}
+
+% Title Page
+\DeclareRobustCommand\location[1]{\gdef\@location{#1}}
+\DeclareRobustCommand\stuid[1]{\gdef\@stuid{#1}}
+\DeclareRobustCommand\stuclass[1]{\gdef\@stuclass{#1}}
+\newcommand{\makereporttitle}{%
+    \begin{titlepage}
+        \thispagestyle{empty}
+        \centering
+        \includegraphics[width=10cm]{title.pdf} \\
+        \vspace{2cm}
+        {\fontsize{36pt}{40pt} \bfseries 实验报告\par}
+        \vspace{2cm}
+        {\Large
+        \begin{tabular}{rccc}
+            \textbf{开课学期}： & \multicolumn{3}{c}{2022 秋季} \\
+            \cline{2-4}
+            \textbf{课程名称}： & \multicolumn{3}{c}{计算机体系结构(实验)}\\
+            \cline{2-4}
+            \textbf{实验名称}： & \multicolumn{3}{c}{\@title} \\
+            \cline{2-4}
+            \textbf{学生班级}： & \multicolumn{3}{c}{\@stuclass} \\
+            \cline{2-4}
+            \textbf{学生学号}： & \multicolumn{3}{c}{\@stuid} \\
+            \cline{2-4}
+            \textbf{学生姓名}： & \multicolumn{3}{c}{\@author} \\
+            \cline{2-4}
+        \end{tabular}}
+        \vfill
+        \Large
+        \vspace{1.5cm}
+    \end{titlepage}
+}
+
+\ctexset{
+    section = {
+        format+ = \raggedright,
+        name = {,.}
+    }
+}
+
+
+% Code
+\RequirePackage{listings}
+\RequirePackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+    language=C,% Change to your choice
+    aboveskip=3mm,
+    belowskip=3mm,
+    showstringspaces=false,
+    columns=flexible,
+    basicstyle={\small\ttfamily},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{dkgreen},
+    stringstyle=\color{mauve},
+    breaklines=true,
+    breakatwhitespace=true,
+    tabsize=4
+}
+
+\newcommand*{\dif}{\mathop{}\!\mathrm{d}}

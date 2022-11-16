@@ -12,4 +12,10 @@ submit:
 	@mv ../submit.zip .
 	-@mv submit.zip $(STUID)_$(NAME)_ARCH实验$(LAB).zip
 
-.PHONY: submit
+docs:
+	$(MAKE) -C docs
+
+docs-%:
+	$(MAKE) -C docs $*
+
+.PHONY: submit docs docs-%

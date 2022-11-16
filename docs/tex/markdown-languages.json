@@ -1,0 +1,6 @@
+{
+  "tex": "LaTeX",
+  "c": "C",
+  "shell": "sh",
+  "makefile": "make"
+}

@@ -1,0 +1,7 @@
+-include lab.mk
+
+def:
+	+$(MAKE) -C tex LAB=$(LAB) AUTHOR=$(AUTHOR) TITLE=$(TITLE) STUID=$(STUID) STUCLASS=$(STUCLASS)
+
+%:
+	+$(MAKE) -C tex $@ LAB=$(LAB) AUTHOR=$(AUTHOR) TITLE=$(TITLE) STUID=$(STUID) STUCLASS=$(STUCLASS)

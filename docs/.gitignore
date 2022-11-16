@@ -1,1 +1,17 @@
+*.aux
+*.log
 *.pdf
+*.xdv
+*.out
+*.toc
+*.bbl
+*.blg
+*.bcf
+*.synctex.gz
+*.run.xml
+.DS_Store
+*.markdown.*
+*_markdown_*
+dist/
+*.tmp
+lab*/*.pdf
