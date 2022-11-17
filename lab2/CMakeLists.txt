@@ -63,12 +63,12 @@ corrosion_add_cxxbridge(rusty_bridge CRATE rusty_code MANIFEST_PATH rusty_code F
 target_link_options(rusty_bridge INTERFACE -Wl,--hash-style=sysv)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/include)
-add_executable(rusty_test src/rusty_test.cpp)
-target_link_libraries(rusty_test PRIVATE rusty_bridge)
 
-#add_library(rusty SHARED src/empty.cpp)
-add_pintool(rusty src/empty.cpp)
-target_link_libraries(rusty PRIVATE rusty_bridge)
+#add_executable(rusty_test src/rusty_test.cpp)
+#target_link_libraries(rusty_test PRIVATE rusty_bridge)
+
+#add_pintool(rusty src/empty.cpp)
+#target_link_libraries(rusty PRIVATE rusty_bridge)
 
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
@@ -79,5 +79,3 @@ add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
 
 add_pintool_test(bp "ls" ${CMAKE_SOURCE_DIR}/src/main.cpp)
 target_link_libraries(bp PRIVATE rusty_bridge)
-
-add_executable(rusty_use_test ${CMAKE_SOURCE_DIR}/src/rusty_use_test.cpp)

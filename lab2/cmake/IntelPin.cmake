@@ -90,30 +90,14 @@ if (IntelPin_ADDED)
 
     set(PIN_EXE "${PIN_DIR}/pin")
 
-#    link_directories(${PIN_DIR}/extras/components/lib/intel64
-#            ${PIN_DIR}/intel64/runtime/pincrt
-#            ${PIN_DIR}/intel64/lib
-#            ${PIN_DIR}/intel64/lib-ext
-#            ${PIN_DIR}/extras/xed-intel64/lib)
-#    add_link_options(-nostdlib)
-#    link_libraries(${PIN_DIR}/intel64/runtime/pincrt/crtbeginS.o
-#            ${PIN_DIR}/intel64/runtime/pincrt/crtendS.o
-#            pin
-#            xed
-#            pin3dwarf
-#            dl-dynamic
-#            stlport-dynamic
-#            m-dynamic
-#            c-dynamic
-#            unwind-dynamic
-#            )
-
     add_library(IntelPin INTERFACE)
 
     # reference URL: https://software.intel.com/sites/landingpage/pintool/docs/98425/PinCRT/PinCRT.pdf
     # reference files: makefile.unix.config
 
     apply_pin_target(IntelPin)
+
+    file(COPY_FILE ${CMAKE_SOURCE_DIR}/cmake/cstdint ${PIN_DIR}/extras/libstdc++/include/cstdint)
 
     function(add_pintool target)
         add_library(${target} SHARED ${ARGN})
