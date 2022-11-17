@@ -52,11 +52,9 @@ include(${CPM_DOWNLOAD_LOCATION})
 # Enable solution folder support
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-#add_compile_options(-Wl --hash-style=sysv)
-
 # Include Intel PIN targets (this should use find_package but this is easier sometimes)
 #include(cmake/CPM.cmake)
-include(cmake/IntelPIN.cmake)
+include(cmake/IntelPin.cmake)
 
 # cxxbridge for rust
 corrosion_import_crate(MANIFEST_PATH src/rusty_code/Cargo.toml)
