@@ -2,19 +2,11 @@ cmake_minimum_required(VERSION 3.23)
 
 project(branch_predication CXX)
 
-#include(FetchContent)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_CXX_STANDARD 17)
 
 enable_testing()
 
-#FetchContent_Declare(
-#        Corrosion
-#        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-#        GIT_TAG master
-#)
-#FetchContent_MakeAvailable(Corrosion)
 set(CPM_DOWNLOAD_VERSION 0.36.0)
 
 if (CPM_SOURCE_CACHE)
@@ -41,7 +33,6 @@ include(${CPM_DOWNLOAD_LOCATION})
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Include Intel PIN targets (this should use find_package but this is easier sometimes)
-#include(cmake/CPM.cmake)
 include(cmake/IntelPin.cmake)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/corrosion)
@@ -63,12 +54,6 @@ corrosion_add_cxxbridge(rusty_bridge CRATE rusty_code MANIFEST_PATH rusty_code F
 target_link_options(rusty_bridge INTERFACE -Wl,--hash-style=sysv)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/include)
-
-#add_executable(rusty_test src/rusty_test.cpp)
-#target_link_libraries(rusty_test PRIVATE rusty_bridge)
-
-#add_pintool(rusty src/empty.cpp)
-#target_link_libraries(rusty PRIVATE rusty_bridge)
 
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
