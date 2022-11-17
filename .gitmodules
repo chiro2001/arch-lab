@@ -1,0 +1,5 @@
+[submodule "lab2/corrosion"]
+	path = lab2/corrosion
+	url = https://github.com/corrosion-rs/corrosion.git
+[submodule "corrosion"]
+	url = https://github.com/chiro2001/corrosion-pin

@@ -2,31 +2,19 @@ cmake_minimum_required(VERSION 3.23)
 
 project(branch_predication CXX)
 
-include(FetchContent)
+#include(FetchContent)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_CXX_STANDARD 17)
 
 enable_testing()
 
-FetchContent_Declare(
-        Corrosion
-        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-        GIT_TAG master
-)
-FetchContent_MakeAvailable(Corrosion)
-
-find_program(CXXBRIDGE cxxbridge PATHS "$ENV{HOME}/.cargo/bin/")
-if (CXXBRIDGE STREQUAL "CXXBRIDGE-NOTFOUND")
-    message("Could not find cxxbridge, trying to install with `cargo install cxxbridge-cmd'")
-    find_program(CARGO cargo PATHS "$ENV{HOME}/.cargo/bin/")
-    if (CARGO STREQUAL "CARGO-NOTFOUND")
-        message(FATAL_ERROR "Requires cargo available in path, install via rustup https://rustup.rs/")
-    endif ()
-    execute_process(COMMAND ${CARGO} install cxxbridge-cmd)
-    find_program(CXXBRIDGE cxxbridge PATHS "$ENV{HOME}/.cargo/bin/")
-endif ()
-
+#FetchContent_Declare(
+#        Corrosion
+#        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+#        GIT_TAG master
+#)
+#FetchContent_MakeAvailable(Corrosion)
 set(CPM_DOWNLOAD_VERSION 0.36.0)
 
 if (CPM_SOURCE_CACHE)
@@ -56,6 +44,19 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 #include(cmake/CPM.cmake)
 include(cmake/IntelPin.cmake)
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/corrosion)
+
+find_program(CXXBRIDGE cxxbridge PATHS "$ENV{HOME}/.cargo/bin/")
+if (CXXBRIDGE STREQUAL "CXXBRIDGE-NOTFOUND")
+    message("Could not find cxxbridge, trying to install with `cargo install cxxbridge-cmd'")
+    find_program(CARGO cargo PATHS "$ENV{HOME}/.cargo/bin/")
+    if (CARGO STREQUAL "CARGO-NOTFOUND")
+        message(FATAL_ERROR "Requires cargo available in path, install via rustup https://rustup.rs/")
+    endif ()
+    execute_process(COMMAND ${CARGO} install cxxbridge-cmd)
+    find_program(CXXBRIDGE cxxbridge PATHS "$ENV{HOME}/.cargo/bin/")
+endif ()
+
 # cxxbridge for rust
 corrosion_import_crate(MANIFEST_PATH src/rusty_code/Cargo.toml)
 corrosion_add_cxxbridge(rusty_bridge CRATE rusty_code MANIFEST_PATH rusty_code FILES lib.rs)
@@ -65,7 +66,8 @@ include_directories(${CMAKE_SOURCE_DIR}/src/include)
 add_executable(rusty_test src/rusty_test.cpp)
 target_link_libraries(rusty_test PRIVATE rusty_bridge)
 
-add_library(rusty SHARED src/empty.cpp)
+#add_library(rusty SHARED src/empty.cpp)
+add_pintool(rusty src/empty.cpp)
 target_link_libraries(rusty PRIVATE rusty_bridge)
 
 # Instruction counter example
@@ -76,6 +78,6 @@ add_pintool_test(pin_test "ls" ${CMAKE_SOURCE_DIR}/src/pin_test.cpp)
 add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
 
 add_pintool_test(bp "ls" ${CMAKE_SOURCE_DIR}/src/main.cpp)
+target_link_libraries(bp PRIVATE rusty_bridge)
 
 add_executable(rusty_use_test ${CMAKE_SOURCE_DIR}/src/rusty_use_test.cpp)
-target_link_libraries(rusty_use_test PRIVATE dl)
