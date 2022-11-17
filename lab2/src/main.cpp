@@ -101,10 +101,10 @@ int main(int argc, char *argv[]) {
     std::cerr << "Cannot open rusty_cxxbridge_integer!" << "\n";
   }
 
-  rusty_cbridge_integer = (int (*)() noexcept) dlsym(handler, "rusty_cbridge_integer");
+  rusty_extern_c_integer = (int (*)() noexcept) dlsym(handler, "rusty_cbridge_integer");
   if (rusty_cxxbridge_integer) {
     std::cout << "A value given via generated cbridge "
-              << rusty_cbridge_integer() << "\n";
+              << rusty_extern_c_integer() << "\n";
   } else {
     std::cerr << "Cannot open rusty_cbridge_integer!" << "\n";
   }
