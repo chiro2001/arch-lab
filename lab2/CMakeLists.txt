@@ -64,4 +64,6 @@ target_link_libraries(rusty_cmake PRIVATE rusty_bridge)
 
 
 # Instruction counter example
-add_pintool(bp ${CMAKE_SOURCE_DIR}/src/main2.cpp)
+add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
+
+add_pintool_exec(bp ${CMAKE_SOURCE_DIR}/src/main2.cpp)
