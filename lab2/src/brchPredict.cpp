@@ -100,7 +100,7 @@ BranchPredictor *BP;
 class BHTPredictor : public BranchPredictor {
   size_t m_entries_log;
   SaturatingCnt *m_scnt;              // BHT
-  allocator <SaturatingCnt> m_alloc;
+  allocator<SaturatingCnt> m_alloc;
 
 public:
   // Constructor
@@ -140,7 +140,7 @@ class GlobalHistoryPredictor : public BranchPredictor {
   ShiftReg *m_ghr;                   // GHR
   SaturatingCnt *m_scnt;              // PHT中的分支历史字段
   size_t m_entries_log;                   // PHT行数的对数
-  allocator <SaturatingCnt> m_alloc;
+  allocator<SaturatingCnt> m_alloc;
 
 public:
   // Constructor
@@ -239,7 +239,7 @@ public:
     size_t ghr_size = T1ghr_len;
     for (size_t i = 1; i < m_tnum; i++) {
       m_T[i] = new GlobalHistoryPredictor<hash1>(ghr_size, m_entries_log, scnt_width);
-      ghr_size = (size_t)(ghr_size * alpha);
+      ghr_size = (size_t) (ghr_size * alpha);
 
       m_useful[i] = new UINT8[1 << m_entries_log];
       memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
@@ -303,7 +303,7 @@ void Instruction(INS ins, void *v) {
 }
 
 // This knob sets the output file name
-KNOB <string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "brchPredict.txt", "specify the output file name");
+KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "brchPredict.txt", "specify the output file name");
 
 // This function is called when the application exits
 VOID Fini(int, VOID *v) {
