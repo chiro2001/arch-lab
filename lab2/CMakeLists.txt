@@ -67,3 +67,5 @@ target_link_libraries(rusty_cmake PRIVATE rusty_bridge)
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
 
 add_pintool_test(pin_test "ls" ${CMAKE_SOURCE_DIR}/src/pin_test.cpp)
+
+add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
