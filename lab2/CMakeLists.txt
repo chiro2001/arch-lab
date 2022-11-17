@@ -60,8 +60,9 @@ include(cmake/IntelPin.cmake)
 corrosion_import_crate(MANIFEST_PATH src/rusty_code/Cargo.toml)
 corrosion_add_cxxbridge(rusty_bridge CRATE rusty_code MANIFEST_PATH rusty_code FILES lib.rs)
 
-#add_executable(rusty_cmake src/main.cpp)
-#target_link_libraries(rusty_cmake PRIVATE rusty_bridge)
+include_directories(${CMAKE_SOURCE_DIR}/src/include)
+add_executable(rusty_test src/rusty_test.cpp)
+target_link_libraries(rusty_test PRIVATE rusty_bridge)
 
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
@@ -71,4 +72,4 @@ add_pintool_test(pin_test "ls" ${CMAKE_SOURCE_DIR}/src/pin_test.cpp)
 add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
 
 add_pintool_test(bp "ls" ${CMAKE_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(bp PRIVATE rusty_bridge)
+target_link_libraries(bp PRIVATE rusty_bridge gcc_s)

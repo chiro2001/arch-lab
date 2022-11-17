@@ -101,7 +101,6 @@ if(IntelPin_ADDED)
 
   function(add_pintool_test target command paths)
     add_pintool(${target} ${paths})
-    # target_compile_options(${target} PUBLIC -Wl,--hash-style=sysv)
     add_test(NAME run_${target}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMAND ${PIN_DIR}/pin -t ${CMAKE_BINARY_DIR}/lib${target}.so -- ${command})
