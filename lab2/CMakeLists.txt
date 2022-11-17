@@ -64,6 +64,12 @@ include_directories(${CMAKE_SOURCE_DIR}/src/include)
 add_executable(rusty_test src/rusty_test.cpp)
 target_link_libraries(rusty_test PRIVATE rusty_bridge)
 
+add_library(rusty SHARED src/empty.cpp)
+target_link_libraries(rusty PRIVATE rusty_bridge)
+#target_compile_options(rusty PRIVATE -Wl,--hash-style=sysv)
+target_compile_options(rusty_bridge INTERFACE -Wl,--hash-style=sysv)
+add_compile_options(-Wl,--hash-style=sysv)
+
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
 
@@ -72,4 +78,3 @@ add_pintool_test(pin_test "ls" ${CMAKE_SOURCE_DIR}/src/pin_test.cpp)
 add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
 
 add_pintool_test(bp "ls" ${CMAKE_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(bp PRIVATE rusty_bridge gcc_s)

@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include "pin.H"
+#include <dlfcn.h>
 
 using namespace std;
 
@@ -86,10 +87,27 @@ void Instruction(INS ins, void *v);
 /* ===================================================================== */
 
 int main(int argc, char *argv[]) {
-  std::cout << "A value given via generated cxxbridge "
-            << rusty_cxxbridge_integer() << "\n";
-  // TODO: New your Predictor below.
-  // BP = new BranchPredictor();
+  void *handler = dlopen("/home/chiro/programs/arch-lab/lab2/build/librusty.so", RTLD_LAZY);
+  // void *handler = dlopen("/home/chiro/programs/arch-lab/lab2/build/libbp.so", RTLD_LAZY);
+  if (!handler) {
+    std::cerr << dlerror() << "\n";
+    return 1;
+  }
+  rusty_cxxbridge_integer = (int (*)() noexcept) dlsym(handler, "rusty_cxxbridge_integer");
+  if (rusty_cxxbridge_integer) {
+    std::cout << "A value given via generated cxxbridge "
+              << rusty_cxxbridge_integer() << "\n";
+  } else {
+    std::cerr << "Cannot open rusty_cxxbridge_integer!" << "\n";
+  }
+
+  rusty_cbridge_integer = (int (*)() noexcept) dlsym(handler, "rusty_cbridge_integer");
+  if (rusty_cxxbridge_integer) {
+    std::cout << "A value given via generated cbridge "
+              << rusty_cbridge_integer() << "\n";
+  } else {
+    std::cerr << "Cannot open rusty_cbridge_integer!" << "\n";
+  }
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();

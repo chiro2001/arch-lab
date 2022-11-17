@@ -6,7 +6,8 @@
 
 #include <cstdint>
 
-int32_t rusty_cxxbridge_integer() noexcept;
+static int32_t (*rusty_cxxbridge_integer)() noexcept = nullptr;
+static int32_t (*rusty_cbridge_integer)() = nullptr;
 
 #define BRANCH_PREDICATION_BRIDGE_H
 
