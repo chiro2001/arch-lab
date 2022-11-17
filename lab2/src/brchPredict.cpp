@@ -124,9 +124,9 @@ public:
   BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2) {
     m_entries_log = entry_num_log;
 
-    m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
     targets = new ADDRINT[1 << entry_num_log];
     memset(targets, 0, sizeof(ADDRINT) * (1 << entry_num_log));
+    m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
     for (int i = 0; i < (1 << entry_num_log); i++)
       m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
   }
@@ -166,6 +166,19 @@ public:
   }
 };
 
+class HashMethods {
+public:
+  /**
+   * Simply slice address to make hash, assert 4 bytes align
+   * @param addr
+   * @param history
+   * @return hashed data
+   */
+  static UINT128 slice(UINT128 addr, UINT128 history) {
+    return ((addr >> 2) & ((1 << 10) - 1)) ^ history;
+  }
+};
+
 /* ===================================================================== */
 /* Global-history-based branch predictor                                 */
 /* ===================================================================== */
@@ -181,8 +194,18 @@ public:
   // param:   ghr_width:      Width of GHR
   //          entry_num_log:  PHT表行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
-  GlobalHistoryPredictor(size_t ghr_width, size_t entry_num_log, size_t scnt_width = 2) {
+  // PHT.w = 2+64+1
+  GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 12, size_t scnt_width = 2) {
     // TODO:
+    m_entries_log = entry_num_log;
+    m_ghr = new ShiftReg(ghr_width);
+    m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
+    for (int i = 0; i < (1 << entry_num_log); i++)
+      m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
+  }
+
+  uint64_t getTagFromAddr(ADDRINT addr) {
+    return hash(addr, m_ghr->getVal());
   }
 
   // Destructor
@@ -214,6 +237,7 @@ public:
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr) {
     // TODO: Update GHR and PHT according to branch results and prediction
+    m_ghr->shiftIn(takenActually);
   }
 };
 
@@ -380,7 +404,8 @@ INT32 Usage() {
 int main(int argc, char *argv[]) {
   // BP = new BranchPredictor();
   // BP = new StaticPredictor();
-  BP = new BHTPredictor();
+  // BP = new BHTPredictor();
+  BP = new GlobalHistoryPredictor<HashMethods::slice>();
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
