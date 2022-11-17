@@ -113,19 +113,20 @@ class BHTPredictor : public BranchPredictor {
   size_t m_entries_log;
   SaturatingCnt *m_scnt;              // BHT
   allocator<SaturatingCnt> m_alloc;
-  // uint64_t *tags;
+  ADDRINT *targets;
 
 public:
   // Constructor
   // param:   entry_num_log:  BHT行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
-  // max size 33 KiB, every line 2 bit => len = 33 * 0x400 * 8 / 2 = 135168 > 2^{17}
-  BHTPredictor(size_t entry_num_log = 17, size_t scnt_width = 2) {
+  // max size 33 KiB, every line (2+64) bit, tot = 66 bit
+  // 33 * 0x400 * 8 = 135168 > 66 * 2048 = 66 * 2^n, n = 11
+  BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2) {
     m_entries_log = entry_num_log;
 
     m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
-    // tags = new uint64_t[1 << entry_num_log];
-    // memset(tags, 0, sizeof(uint64_t) * (1 << entry_num_log));
+    targets = new ADDRINT[1 << entry_num_log];
+    memset(targets, 0, sizeof(ADDRINT) * (1 << entry_num_log));
     for (int i = 0; i < (1 << entry_num_log); i++)
       m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
   }
@@ -136,13 +137,16 @@ public:
       m_alloc.destroy(m_scnt + i);
 
     m_alloc.deallocate(m_scnt, 1 << m_entries_log);
-    // delete tags;
+    delete targets;
+  }
+
+  uint64_t getTagFromAddr(ADDRINT addr) {
+    return (addr >> 2) & ((1 << m_entries_log) - 1);
   }
 
   SaturatingCnt *getCntFromAddr(ADDRINT addr) {
     // assert address is aligned to 4 bytes
-    uint64_t index = (addr >> 2) & ((1 << m_entries_log) - 1);
-    return &m_scnt[index];
+    return &m_scnt[getTagFromAddr(addr)];
   }
 
   BOOL predict(ADDRINT addr) {
@@ -155,6 +159,7 @@ public:
     SaturatingCnt *cnt = getCntFromAddr(addr);
     if (takenActually) {
       cnt->increase();
+      targets[getTagFromAddr(addr)] = addr;
     } else {
       cnt->decrease();
     }
