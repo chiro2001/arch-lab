@@ -93,6 +93,15 @@ public:
 BranchPredictor *BP;
 
 
+class StaticPredictor : public BranchPredictor {
+public:
+  StaticPredictor() {
+    srand(time(nullptr));
+  }
+
+private:
+  bool predict(ADDRINT addr) { return rand() % 2 == 0; };
+};
 
 /* ===================================================================== */
 /* BHT-based branch predictor                                            */
@@ -346,6 +355,7 @@ INT32 Usage() {
 int main(int argc, char *argv[]) {
   // TODO: New your Predictor below.
   // BP = new BranchPredictor();
+  BP = new StaticPredictor();
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
@@ -353,10 +363,10 @@ int main(int argc, char *argv[]) {
   OutFile.open(KnobOutputFile.Value().c_str());
 
   // Register Instruction to be called to instrument instructions
-  INS_AddInstrumentFunction(Instruction, 0);
+  INS_AddInstrumentFunction(Instruction, nullptr);
 
   // Register Fini to be called when the application exits
-  PIN_AddFiniFunction(Fini, 0);
+  PIN_AddFiniFunction(Fini, nullptr);
 
   // Start the program, never returns
   PIN_StartProgram();
