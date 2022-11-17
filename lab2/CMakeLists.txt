@@ -7,6 +7,8 @@ include(FetchContent)
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_CXX_STANDARD 17)
 
+enable_testing()
+
 FetchContent_Declare(
         Corrosion
         GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
@@ -50,20 +52,20 @@ include(${CPM_DOWNLOAD_LOCATION})
 # Enable solution folder support
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+#add_compile_options(-Wl --hash-style=sysv)
+
 # Include Intel PIN targets (this should use find_package but this is easier sometimes)
 #include(cmake/CPM.cmake)
 include(cmake/IntelPIN.cmake)
 
-#add_subdirectory(src)
-
+# cxxbridge for rust
 corrosion_import_crate(MANIFEST_PATH src/rusty_code/Cargo.toml)
 corrosion_add_cxxbridge(rusty_bridge CRATE rusty_code MANIFEST_PATH rusty_code FILES lib.rs)
 
 add_executable(rusty_cmake src/main.cpp)
 target_link_libraries(rusty_cmake PRIVATE rusty_bridge)
 
-
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
 
-add_pintool_exec(bp ${CMAKE_SOURCE_DIR}/src/main2.cpp)
+add_pintool_test(pin_test "ls" ${CMAKE_SOURCE_DIR}/src/pin_test.cpp)

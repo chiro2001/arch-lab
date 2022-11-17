@@ -45,9 +45,11 @@ if (IntelPIN_ADDED)
     target_link_libraries(IntelPIN INTERFACE
             pin
             xed
-            m-dynamic
-            c-dynamic
-            unwind-dynamic
+            stdc++
+
+#            m-dynamic
+#            c-dynamic
+#            unwind-dynamic
             # for icc:
             # imf intlc irng svml
             )
@@ -61,18 +63,20 @@ if (IntelPIN_ADDED)
     endif ()
 
     # target_compile_options(IntelPIN INTERFACE /GR- /GS- /EHs- /EHa- /fp:strict /Oi- /FIinclude/msvc_compat.h /wd5208)
+#    add_compile_options("-Wl,-rpath=${CMAKE_BINARY_DIR}")
+#    add_compile_options("-Wl,--hash-style=gcc")
+
+    set(PIN_RUN_LIBS ${PIN_DIR}/intel64/lib
+            ${PIN_DIR}/intel64/lib-ext
+            ${PIN_DIR}/intel64/runtime/pincrt
+            ${PIN_DIR}/extras/xed-intel64/lib)
 
     if (CMAKE_SIZEOF_VOID_P EQUAL 8)
         target_include_directories(IntelPIN INTERFACE
                 ${PIN_DIR}/extras/xed-intel64/include/xed
                 ${PIN_DIR}/extras/crt/include/arch-x86_64
                 )
-        target_link_directories(IntelPIN INTERFACE
-                ${PIN_DIR}/intel64/lib
-                ${PIN_DIR}/intel64/lib-ext
-                ${PIN_DIR}/intel64/runtime/pincrt
-                ${PIN_DIR}/extras/xed-intel64/lib
-                )
+        target_link_directories(IntelPIN INTERFACE ${PIN_RUN_LIBS})
         target_compile_definitions(IntelPIN INTERFACE
                 TARGET_IA32E
                 HOST_IA32E
@@ -120,13 +124,30 @@ if (IntelPIN_ADDED)
     target_include_directories(InstLib PUBLIC "${PIN_DIR}/source/tools/InstLib")
     target_link_libraries(InstLib PUBLIC IntelPIN)
 
+#    set(CMAKE_LINK_DEF_FILE_FLAG "Wl,-hash-style=sysv")
+
     function(add_pintool target)
         add_library(${target} SHARED ${ARGN})
         target_include_directories(${target} PUBLIC "${PIN_DIR}/source/tools/InstLib")
         target_link_libraries(${target} PRIVATE IntelPIN)
     endfunction()
-    function(add_pintool_exec target)
-        add_executable(${target} ${ARGN})
-        target_link_libraries(${target} PRIVATE IntelPIN)
+    function(add_pintool_test target command paths)
+        add_pintool(${target} ${paths})
+#        target_compile_options(${target} PUBLIC -Wl,--hash-style=sysv)
+        target_compile_options(${target} PUBLIC -Wl,--hash-style=sysv)
+        add_test(NAME run_${target}
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+#                COMMAND ${PIN_EXE} -t ${CMAKE_BINARY_DIR}/lib${target}.so -- ${command})
+                COMMAND ${PIN_DIR}/pin -t ${CMAKE_BINARY_DIR}/lib${target}.so -- ${command})
+        # list(JOIN PIN_RUN_LIBS ":" PIN_RUN_LIBS_PATH)
+        # set(PIN_RUN_LIBS_PATH "/home/chiro/programs/arch-lab/lab2/build/_deps/intelpin-src/extras/xed-intel64/lib")
+#        foreach (PIN_RUN_LIB ${PIN_RUN_LIBS})
+#            file(GLOB PIN_RUN_LIBS "${PIN_RUN_LIB}/*.so")
+#            foreach (PIN_SO_FILE ${PIN_RUN_LIBS})
+#                file(COPY "${PIN_SO_FILE}" DESTINATION "${CMAKE_BINARY_DIR}")
+#            endforeach ()
+#        endforeach ()
+#        set_property(TEST run_${target}
+#                PROPERTY ENVIRONMENT LD_LIBRARY_PATH=${CMAKE_BINARY_DIR})
     endfunction()
 endif ()
