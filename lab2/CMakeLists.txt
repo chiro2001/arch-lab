@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(rusty_cmake CXX)
+project(branch_predication CXX)
 
 include(FetchContent)
 
@@ -8,9 +8,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_CXX_STANDARD 17)
 
 FetchContent_Declare(
-    Corrosion
-    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-    GIT_TAG master
+        Corrosion
+        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+        GIT_TAG master
 )
 FetchContent_MakeAvailable(Corrosion)
 
@@ -20,9 +20,48 @@ if (CXXBRIDGE STREQUAL "CXXBRIDGE-NOTFOUND")
     find_program(CARGO cargo PATHS "$ENV{HOME}/.cargo/bin/")
     if (CARGO STREQUAL "CARGO-NOTFOUND")
         message(FATAL_ERROR "Requires cargo available in path, install via rustup https://rustup.rs/")
-    endif()
+    endif ()
     execute_process(COMMAND ${CARGO} install cxxbridge-cmd)
     find_program(CXXBRIDGE cxxbridge PATHS "$ENV{HOME}/.cargo/bin/")
-endif()
+endif ()
 
-add_subdirectory(src)
+set(CPM_DOWNLOAD_VERSION 0.36.0)
+
+if (CPM_SOURCE_CACHE)
+    set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+elseif (DEFINED ENV{CPM_SOURCE_CACHE})
+    set(CPM_DOWNLOAD_LOCATION "$ENV{CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+else ()
+    set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+endif ()
+
+# Expand relative path. This is important if the provided path contains a tilde (~)
+get_filename_component(CPM_DOWNLOAD_LOCATION ${CPM_DOWNLOAD_LOCATION} ABSOLUTE)
+if (NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
+    message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
+    file(DOWNLOAD
+            https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+            ${CPM_DOWNLOAD_LOCATION}
+            )
+endif ()
+
+include(${CPM_DOWNLOAD_LOCATION})
+
+# Enable solution folder support
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# Include Intel PIN targets (this should use find_package but this is easier sometimes)
+#include(cmake/CPM.cmake)
+include(cmake/IntelPIN.cmake)
+
+#add_subdirectory(src)
+
+corrosion_import_crate(MANIFEST_PATH src/rusty_code/Cargo.toml)
+corrosion_add_cxxbridge(rusty_bridge CRATE rusty_code MANIFEST_PATH rusty_code FILES lib.rs)
+
+add_executable(rusty_cmake src/main.cpp)
+target_link_libraries(rusty_cmake PRIVATE rusty_bridge)
+
+
+# Instruction counter example
+add_pintool(bp ${CMAKE_SOURCE_DIR}/src/main2.cpp)
