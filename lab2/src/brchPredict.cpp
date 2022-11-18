@@ -368,11 +368,11 @@ VOID Fini(int, VOID *v) {
   double precision = 100 * double(takenCorrect + notTakenCorrect) /
                      (takenCorrect + notTakenCorrect + takenIncorrect + notTakenIncorrect);
 
-  cout << "takenCorrect: " << takenCorrect << endl
-       << "takenIncorrect: " << takenIncorrect << endl
-       << "notTakenCorrect: " << notTakenCorrect << endl
-       << "nnotTakenIncorrect: " << notTakenIncorrect << endl
-       << "Precision: " << precision << endl;
+  // cout << "takenCorrect: " << takenCorrect << endl
+  //      << "takenIncorrect: " << takenIncorrect << endl
+  //      << "notTakenCorrect: " << notTakenCorrect << endl
+  //      << "nnotTakenIncorrect: " << notTakenIncorrect << endl
+  //      << "Precision: " << precision << endl;
 
   OutFile.setf(ios::showbase);
   OutFile << "takenCorrect: " << takenCorrect << endl

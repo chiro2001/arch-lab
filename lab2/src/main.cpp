@@ -1,4 +1,3 @@
-// #include "bridge.h"
 #include "rusty_bridge/lib.h"
 #include <iostream>
 #include <fstream>
@@ -63,10 +62,10 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
 
-  std::cout << "rust_start(): " << rust_start() << std::endl;
-  std::cout << "rust_finish(): " << rust_finish(0, 0, 0, 0) << std::endl;
-  // std::cout << "rusty_cxxbridge_integer = " << rusty_cxxbridge_integer() << std::endl;
-  std::cout << "rusty_extern_c_integer = " << rusty_extern_c_integer() << std::endl;
+  // std::cout << "rust_start(): " << rust_start() << std::endl;
+  // std::cout << "rust_finish(): " << rust_finish(0, 0, 0, 0) << std::endl;
+  // // std::cout << "rusty_cxxbridge_integer = " << rusty_cxxbridge_integer() << std::endl;
+  // std::cout << "rusty_extern_c_integer = " << rusty_extern_c_integer() << std::endl;
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);

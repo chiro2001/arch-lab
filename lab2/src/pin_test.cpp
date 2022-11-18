@@ -15,8 +15,8 @@ INSTLIB::ICOUNT icount;
 
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
-  std::cerr << "Count " << icount.Count() << endl;
-  if (KnobReps) std::cerr << "Count (single REPs) " << icount.CountWithoutRep() << endl;
+  // std::cerr << "Count " << icount.Count() << endl;
+  // if (KnobReps) std::cerr << "Count (single REPs) " << icount.CountWithoutRep() << endl;
 }
 
 // argc, argv are the entire command line, including pin -t <toolname> -- ...

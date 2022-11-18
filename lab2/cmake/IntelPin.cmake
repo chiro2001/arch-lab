@@ -3,9 +3,9 @@
 
 CPMAddPackage(
         NAME IntelPin
-        VERSION 3.19
+        VERSION 3.24
         #  URL https://software.intel.com/sites/landingpage/pintool/downloads/pin-3.19-98425-gd666b2bee-gcc-linux.tar.gz
-        URL https://github.com/chiro2001/binary/releases/download/pintool/pin-3.19-98425-gd666b2bee-gcc-linux.tar.gz
+        URL https://github.com/chiro2001/binary/releases/download/pintool/pin-3.24-98612-g6bd5931f2-gcc-linux.tar.gz
         DOWNLOAD_ONLY ON
 )
 
@@ -45,6 +45,7 @@ function(apply_pin_target target)
             -fasynchronous-unwind-tables
             -fomit-frame-pointer
             -fno-strict-aliasing
+            -Wno-dangling-pointer
             # for g++ in linux
             -fno-exceptions
             -fno-rtti
@@ -55,11 +56,30 @@ function(apply_pin_target target)
             )
 
     # Linkage
+#g++ -Wl,--hash-style=sysv
+#/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/runtime/pincrt/crtbegin.o
+#-Wl,-pie
+#-Wl,-Bsymbolic
+#-fabi-version=2
+#-o obj-intel64/statica.exe
+#    obj-intel64/statica.o
+#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/runtime/pincrt
+#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/lib
+#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/lib-ext
+#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/xed-intel64/lib
+#-lsapin -lxed /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/runtime/pincrt/crtend.o
+#-lpin3dwarf -ldl-dynamic -nostdlib -lc++ -lc++abi -lm-dynamic -lc-dynamic -lunwind-dynamic
+#g++ -Wall -Werror -Wno-unknown-pragmas -DPIN_CRT=1 -fno-stack-protector -fno-exceptions -funwind-tables -fasynchronous-unwind-tables -fno-rtti -DTARGET_IA32E -DHOST_IA32E -fPIC -DTARGET_LINUX -fabi-version=2 -faligned-new -I/opt/pin/pin-3.24-98612-g6bd
+#5931f2-gcc-linux/source/include/pin -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/source/include/pin/gen -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/cxx/include -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include
+#-isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include/arch-x86_64 -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include/kernel/uapi -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include/kernel/ua
+#pi/asm-x86 -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/components/include -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/xed-intel64/include/xed -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/source/tools/Utils -I/opt/pin/pin-3.24-9861
+#2-g6bd5931f2-gcc-linux/source/tools/InstLib -O3 -fomit-frame-pointer -fno-strict-aliasing  -Wno-dangling-pointer -c -o obj-intel64/inscount0.o inscount0.cpp
     target_link_options(${target} INTERFACE
             # TOOL_LDFLAGS
             -Wl,--hash-style=sysv
+            -Wl,-pie
             -Wl,-Bsymbolic
-
+            -fabi-version=2
             -nostdlib
             )
 
@@ -71,10 +91,12 @@ function(apply_pin_target target)
             xed
             pin3dwarf
             dl-dynamic
-            stlport-dynamic
             m-dynamic
             c-dynamic
             unwind-dynamic
+            c++
+            c++abi
+            sapin
             )
     target_link_directories(${target} INTERFACE
             ${PIN_DIR}/extras/components/lib/intel64
