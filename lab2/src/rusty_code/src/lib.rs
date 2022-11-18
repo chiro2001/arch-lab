@@ -22,8 +22,11 @@ pub extern "C" fn rust_finish(f0: u64, f1: u64, f2: u64, f3: u64) -> bool {
     // let args = String::from_utf8(data).unwrap();
     // println!("args: {}", args);
     // println!("args: {}", f0);
-    println!("hi");
-    true
+    // println!("hi");
+    // true
+
+    // f0 == 0
+    vec![f0, f1, f2, f3].iter().sum::<u64>() == 0
 }
 
 pub fn rusty_cxxbridge_integer() -> i32 {

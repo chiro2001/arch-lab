@@ -27,7 +27,7 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "bp.txt", "spec
 VOID Fini(int, VOID *v) {
   uint64_t args[4]{};
   auto p = KnobOutputFile.Value().c_str();
-  for (unsigned long & arg : args) {
+  for (unsigned long &arg: args) {
     uint64_t t = 0;
     int j = 0;
     while (*p && j < 8) {
@@ -37,7 +37,8 @@ VOID Fini(int, VOID *v) {
     }
     arg = t;
   }
-  rust_finish(args[0], args[1], args[2], args[3]);
+  auto ret = rust_finish(args[0], args[1], args[2], args[3]);
+  printf("ret = %d\n", ret);
 }
 
 /* ===================================================================== */
@@ -62,7 +63,8 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
 
-  rust_start();
+  std::cout << "rust_start(): " << rust_start() << std::endl;
+  std::cout << "rust_finish(): " << rust_finish(0, 0, 0, 0) << std::endl;
   // std::cout << "rusty_cxxbridge_integer = " << rusty_cxxbridge_integer() << std::endl;
   std::cout << "rusty_extern_c_integer = " << rusty_extern_c_integer() << std::endl;
 
