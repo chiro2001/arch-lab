@@ -12,16 +12,15 @@ CPMAddPackage(
 function(apply_pin_target target)
     # Compilation
     target_include_directories(${target} INTERFACE
-            ${PIN_DIR}/extras/components/include
             ${PIN_DIR}/source/include/pin
             ${PIN_DIR}/source/include/pin/gen
+            ${PIN_DIR}/extras/components/include
             ${PIN_DIR}/extras/xed-intel64/include/xed
             ${PIN_DIR}/source/tools/Utils
             ${PIN_DIR}/source/tools/InstLib
             )
     target_include_directories(${target} SYSTEM INTERFACE
-            ${PIN_DIR}/extras/stlport/include
-            ${PIN_DIR}/extras/libstdc++/include
+            ${PIN_DIR}/extras/cxx/include
             ${PIN_DIR}/extras/crt/include
             ${PIN_DIR}/extras/crt/include/arch-x86_64
             ${PIN_DIR}/extras/crt/include/kernel/uapi
@@ -32,7 +31,7 @@ function(apply_pin_target target)
             TARGET_IA32E
             HOST_IA32E
             TARGET_LINUX
-            __PIN__=1
+            #__PIN__=1
             PIN_CRT=1
             )
     target_compile_options(${target} INTERFACE
@@ -53,34 +52,22 @@ function(apply_pin_target target)
             -faligned-new
             # optimization
             -O3
+            -nostdlib
+            -nostartfiles
+            -nodefaultlibs
+            -fabi-version=2
             )
 
     # Linkage
-#g++ -Wl,--hash-style=sysv
-#/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/runtime/pincrt/crtbegin.o
-#-Wl,-pie
-#-Wl,-Bsymbolic
-#-fabi-version=2
-#-o obj-intel64/statica.exe
-#    obj-intel64/statica.o
-#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/runtime/pincrt
-#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/lib
-#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/lib-ext
-#-L/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/xed-intel64/lib
-#-lsapin -lxed /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/intel64/runtime/pincrt/crtend.o
-#-lpin3dwarf -ldl-dynamic -nostdlib -lc++ -lc++abi -lm-dynamic -lc-dynamic -lunwind-dynamic
-#g++ -Wall -Werror -Wno-unknown-pragmas -DPIN_CRT=1 -fno-stack-protector -fno-exceptions -funwind-tables -fasynchronous-unwind-tables -fno-rtti -DTARGET_IA32E -DHOST_IA32E -fPIC -DTARGET_LINUX -fabi-version=2 -faligned-new -I/opt/pin/pin-3.24-98612-g6bd
-#5931f2-gcc-linux/source/include/pin -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/source/include/pin/gen -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/cxx/include -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include
-#-isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include/arch-x86_64 -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include/kernel/uapi -isystem /opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/crt/include/kernel/ua
-#pi/asm-x86 -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/components/include -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/extras/xed-intel64/include/xed -I/opt/pin/pin-3.24-98612-g6bd5931f2-gcc-linux/source/tools/Utils -I/opt/pin/pin-3.24-9861
-#2-g6bd5931f2-gcc-linux/source/tools/InstLib -O3 -fomit-frame-pointer -fno-strict-aliasing  -Wno-dangling-pointer -c -o obj-intel64/inscount0.o inscount0.cpp
     target_link_options(${target} INTERFACE
             # TOOL_LDFLAGS
             -Wl,--hash-style=sysv
-            -Wl,-pie
+            #-Wl,-pie #oh no...
             -Wl,-Bsymbolic
-            -fabi-version=2
+            -Wl,--version-script=${PIN_DIR}/source/include/pin/pintool.ver
             -nostdlib
+            -nostartfiles
+            -nodefaultlibs
             )
 
     # This order has meanings.
@@ -96,7 +83,6 @@ function(apply_pin_target target)
             unwind-dynamic
             c++
             c++abi
-            sapin
             )
     target_link_directories(${target} INTERFACE
             ${PIN_DIR}/extras/components/lib/intel64

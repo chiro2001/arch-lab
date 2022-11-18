@@ -127,14 +127,14 @@ public:
     targets = new ADDRINT[1 << entry_num_log];
     memset(targets, 0, sizeof(ADDRINT) * (1 << entry_num_log));
     m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
-    for (int i = 0; i < (1 << entry_num_log); i++)
-      m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
+    // for (int i = 0; i < (1 << entry_num_log); i++)
+    //   m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
   }
 
   // Destructor
   ~BHTPredictor() {
     for (int i = 0; i < (1 << m_entries_log); i++)
-      m_alloc.destroy(m_scnt + i);
+      // m_alloc.destroy(m_scnt + i);
 
     m_alloc.deallocate(m_scnt, 1 << m_entries_log);
     delete targets;
@@ -200,8 +200,8 @@ public:
     m_entries_log = entry_num_log;
     m_ghr = new ShiftReg(ghr_width);
     m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
-    for (int i = 0; i < (1 << entry_num_log); i++)
-      m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
+    // for (int i = 0; i < (1 << entry_num_log); i++)
+    //   m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) {

@@ -21,6 +21,8 @@ VOID Fini(INT32 code, VOID *v) {
 
 // argc, argv are the entire command line, including pin -t <toolname> -- ...
 int main(int argc, char *argv[]) {
+  printf("pin_test!\n");
+  fflush(stdout);
   // Initialize pin
   if (PIN_Init(argc, argv)) {
     PIN_ERROR("Count executed instructions.\n" + KNOB_BASE::StringKnobSummary() + "\n");
