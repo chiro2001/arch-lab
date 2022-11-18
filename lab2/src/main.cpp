@@ -24,20 +24,20 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "bp.txt", "spec
 
 // This function is called when the application exits
 VOID Fini(int, VOID *v) {
-  uint64_t args[4]{};
-  auto p = KnobOutputFile.Value().c_str();
-  for (unsigned long &arg: args) {
-    uint64_t t = 0;
-    int j = 0;
-    while (*p && j < 8) {
-      t |= ((uint64_t) (*p) << (8 * j));
-      p++;
-      j++;
-    }
-    arg = t;
-  }
-  auto ret = rust_finish(args[0], args[1], args[2], args[3]);
-  printf("ret = %d\n", ret);
+  // uint64_t args[4]{};
+  // auto p = KnobOutputFile.Value().c_str();
+  // for (unsigned long &arg: args) {
+  //   uint64_t t = 0;
+  //   int j = 0;
+  //   while (*p && j < 8) {
+  //     t |= ((uint64_t) (*p) << (8 * j));
+  //     p++;
+  //     j++;
+  //   }
+  //   arg = t;
+  // }
+  // auto ret = rust_finish(args[0], args[1], args[2], args[3]);
+  // printf("ret = %d\n", ret);
 }
 
 /* ===================================================================== */
