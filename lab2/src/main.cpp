@@ -5,6 +5,7 @@
 #include <string>
 #include "pin.H"
 #include <dlfcn.h>
+#include "bridge.h"
 
 using namespace std;
 
@@ -20,12 +21,23 @@ typedef unsigned __int128 UINT128;
 #define truncate(val, bits) ((val) & ((1 << (bits)) - 1))
 
 // This knob sets the output file name
-// KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "bp.txt", "specify the output file name");
-// KnobOutputFile.Value().c_str()
+KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "bp.txt", "specify the output file name");
 
 // This function is called when the application exits
 VOID Fini(int, VOID *v) {
-  // rust_finish();
+  uint64_t args[4]{};
+  auto p = KnobOutputFile.Value().c_str();
+  for (unsigned long & arg : args) {
+    uint64_t t = 0;
+    int j = 0;
+    while (*p && j < 8) {
+      t |= ((uint64_t) (*p) << (8 * j));
+      p++;
+      j++;
+    }
+    arg = t;
+  }
+  rust_finish(args[0], args[1], args[2], args[3]);
 }
 
 /* ===================================================================== */
@@ -50,8 +62,9 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
 
-  // rust_start();
-  std::cout << "rusty_cxxbridge_integer = " << rusty_cxxbridge_integer() << std::endl;
+  rust_start();
+  // std::cout << "rusty_cxxbridge_integer = " << rusty_cxxbridge_integer() << std::endl;
+  std::cout << "rusty_extern_c_integer = " << rusty_extern_c_integer() << std::endl;
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);

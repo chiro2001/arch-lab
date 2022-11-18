@@ -4,16 +4,27 @@ use mut_static::MutStatic;
 #[cxx::bridge]
 mod ffi {
     extern "Rust" {
-        fn rusty_cxxbridge_integer() -> i32;
-        // fn predict_branch(pc: u64, direction: bool);
-        // fn rust_start() -> i32;
-        // fn rust_finish() -> i32;
+        // fn rusty_cxxbridge_integer() -> i32;
     }
 }
 
-pub fn rust_start() -> i32 { 0 }
+#[no_mangle]
+pub extern "C" fn rust_start() -> bool { true }
 
-pub fn rust_finish() -> i32 { 0 }
+#[no_mangle]
+pub extern "C" fn rust_finish(f0: u64, f1: u64, f2: u64, f3: u64) -> bool {
+    // let mut data: Vec<u8> = vec![];
+    // for f in vec![f0, f1, f2, f3] {
+    //     for c in f.to_le_bytes() {
+    //         data.push(c)
+    //     }
+    // }
+    // let args = String::from_utf8(data).unwrap();
+    // println!("args: {}", args);
+    // println!("args: {}", f0);
+    println!("hi");
+    true
+}
 
 pub fn rusty_cxxbridge_integer() -> i32 {
     42
