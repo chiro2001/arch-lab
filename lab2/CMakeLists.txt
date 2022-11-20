@@ -64,3 +64,5 @@ add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
 
 add_pintool_test(bp "ls" ${CMAKE_SOURCE_DIR}/src/main.cpp)
 target_link_libraries(bp PRIVATE rusty_bridge)
+
+add_executable(simple_test ${CMAKE_SOURCE_DIR}/src/simple_test.cpp)

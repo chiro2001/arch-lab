@@ -49,6 +49,8 @@ public:
   UINT8 getVal() { return m_val; }
 
   bool isTaken() { return (m_val > (1 << m_wid) / 2 - 1); }
+
+  void setVal(UINT8 value) { m_val = value; }
 };
 
 // 移位寄存器 (N < 128)
@@ -106,13 +108,31 @@ private:
   bool predict(ADDRINT addr) { return rand() % 2 == 0; };
 };
 
+class BHTLine {
+public:
+  bool valid = false;
+  SaturatingCnt cnt;
+  ADDRINT target = 0;
+
+  explicit BHTLine(size_t width = 2) : cnt(SaturatingCnt(width)) {}
+
+  void setVal(bool valid_, SaturatingCnt cnt_, ADDRINT target_) {
+    valid = valid_;
+    cnt.setVal(cnt_.getVal());
+    target = target_;
+  }
+};
+
+using PHTLine = BHTLine;
+
 /* ===================================================================== */
 /* BHT-based branch predictor                                            */
 /* ===================================================================== */
 class BHTPredictor : public BranchPredictor {
+protected:
   size_t m_entries_log;
-  vector<SaturatingCnt> m_scnt;              // BHT
-  ADDRINT *targets;
+  vector<BHTLine> lines;              // BHT
+  bool predict_address;
 
 public:
   // Constructor
@@ -120,43 +140,61 @@ public:
   //          scnt_width:     饱和计数器的位数, 默认值为2
   // max size 33 KiB, every line (2+64) bit, tot = 66 bit
   // 33 * 0x400 * 8 = 135168 > 66 * 2048 = 66 * 2^n, n = 11
-  BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2) {
+  BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = false) {
     m_entries_log = entry_num_log;
-
-    targets = new ADDRINT[1 << entry_num_log];
-    memset(targets, 0, sizeof(ADDRINT) * (1 << entry_num_log));
+    this->predict_address = predict_address;
     for (int i = 0; i < (1 << entry_num_log); i++) {
-      m_scnt.emplace_back(SaturatingCnt(scnt_width));
+      lines.emplace_back(BHTLine(scnt_width));
     }
   }
 
   // Destructor
   ~BHTPredictor() {
-    delete targets;
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) {
-    return (addr >> 2) & ((1 << m_entries_log) - 1);
+    return truncate(addr >> 2, m_entries_log);
   }
 
-  SaturatingCnt *getCntFromAddr(ADDRINT addr) {
+  BHTLine &getLineFromAddr(ADDRINT addr) {
     // assert address is aligned to 4 bytes
-    return &m_scnt[getTagFromAddr(addr)];
+    return lines[getTagFromAddr(addr)];
   }
 
   BOOL predict(ADDRINT addr) {
     // Produce prediction according to BHT
-    return getCntFromAddr(addr)->isTaken();
+    return getLineFromAddr(addr).cnt.isTaken();
   }
 
   void update(BOOL takenActually, BOOL takenPredicted, ADDRINT addr) {
     // Update BHT according to branch results and prediction
-    SaturatingCnt *cnt = getCntFromAddr(addr);
-    if (takenActually) {
-      cnt->increase();
-      targets[getTagFromAddr(addr)] = addr;
+    auto &line = getLineFromAddr(addr);
+    if (predict_address) {
+      if (!line.valid) {
+        if (takenActually) {
+          line.valid = true;
+          line.cnt.reset();
+          line.target = addr;
+        }
+      } else {
+        if (line.target == addr) {
+          if (takenActually) {
+            line.cnt.increase();
+            line.target = addr;
+          } else {
+            line.cnt.decrease();
+          }
+        } else {
+          line.valid = false;
+        }
+      }
     } else {
-      cnt->decrease();
+      if (takenActually) {
+        line.cnt.increase();
+        line.target = addr;
+      } else {
+        line.cnt.decrease();
+      }
     }
   }
 };
@@ -170,7 +208,11 @@ public:
    * @return hashed data
    */
   static UINT128 slice(UINT128 addr, UINT128 history) {
-    return ((addr >> 2) & ((1 << 10) - 1)) ^ history;
+    return addr >> 2;
+  }
+
+  static UINT128 hash_xor(UINT128 addr, UINT128 history) {
+    return (addr >> 2) ^ history;
   }
 };
 
@@ -178,10 +220,8 @@ public:
 /* Global-history-based branch predictor                                 */
 /* ===================================================================== */
 template<UINT128 (*hash)(UINT128 addr, UINT128 history)>
-class GlobalHistoryPredictor : public BranchPredictor {
+class GlobalHistoryPredictor : public BHTPredictor {
   ShiftReg *m_ghr;                   // GHR
-  vector<SaturatingCnt> m_scnt;              // PHT中的分支历史字段
-  size_t m_entries_log;                   // PHT行数的对数
 
 public:
   // Constructor
@@ -189,22 +229,17 @@ public:
   //          entry_num_log:  PHT表行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
   // PHT.w = 2+64+1
-  GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 12, size_t scnt_width = 2) {
-    // TODO:
-    m_entries_log = entry_num_log;
+  GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 12, size_t scnt_width = 2)
+          : BHTPredictor(entry_num_log, scnt_width) {
     m_ghr = new ShiftReg(ghr_width);
-    for (int i = 0; i < (1 << entry_num_log); i++)
-      m_scnt.emplace_back(SaturatingCnt(scnt_width));
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) {
-    return hash(addr, m_ghr->getVal());
+    return truncate(hash(addr, m_ghr->getVal()), m_entries_log);
   }
 
   // Destructor
-  ~GlobalHistoryPredictor() {
-    // TODO
-  }
+  ~GlobalHistoryPredictor() {}
 
   // Only for TAGE: return a tag according to the specificed address
   UINT128 get_tag(ADDRINT addr) {
@@ -223,14 +258,24 @@ public:
     // TODO
   }
 
+  PHTLine &getLineFromAddr(ADDRINT addr) {
+    return lines[getTagFromAddr(addr)];
+  }
+
   bool predict(ADDRINT addr) {
-    // TODO: Produce prediction according to GHR and PHT
-    return true;
+    // Produce prediction according to GHR and PHT
+    return getLineFromAddr(addr).cnt.isTaken();
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr) {
-    // TODO: Update GHR and PHT according to branch results and prediction
+    // Update GHR and PHT according to branch results and prediction
     m_ghr->shiftIn(takenActually);
+    if (takenActually) {
+      getLineFromAddr(addr).cnt.increase();
+      getLineFromAddr(addr).target = addr;
+    } else {
+      getLineFromAddr(addr).cnt.decrease();
+    }
   }
 };
 
@@ -361,17 +406,17 @@ VOID Fini(int, VOID *v) {
   double precision = 100 * double(takenCorrect + notTakenCorrect) /
                      (takenCorrect + notTakenCorrect + takenIncorrect + notTakenIncorrect);
 
-  // cout << "takenCorrect: " << takenCorrect << endl
-  //      << "takenIncorrect: " << takenIncorrect << endl
-  //      << "notTakenCorrect: " << notTakenCorrect << endl
-  //      << "nnotTakenIncorrect: " << notTakenIncorrect << endl
-  //      << "Precision: " << precision << endl;
+  cout << "takenCorrect: " << takenCorrect << endl
+       << "takenIncorrect: " << takenIncorrect << endl
+       << "notTakenCorrect: " << notTakenCorrect << endl
+       << "notTakenIncorrect: " << notTakenIncorrect << endl
+       << "Precision: " << precision << endl;
 
   OutFile.setf(ios::showbase);
   OutFile << "takenCorrect: " << takenCorrect << endl
           << "takenIncorrect: " << takenIncorrect << endl
           << "notTakenCorrect: " << notTakenCorrect << endl
-          << "nnotTakenIncorrect: " << notTakenIncorrect << endl
+          << "notTakenIncorrect: " << notTakenIncorrect << endl
           << "Precision: " << precision << endl;
 
   OutFile.close();
@@ -398,7 +443,7 @@ int main(int argc, char *argv[]) {
   // BP = new BranchPredictor();
   // BP = new StaticPredictor();
   BP = new BHTPredictor();
-  // BP = new GlobalHistoryPredictor<HashMethods::slice>();
+  // BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
