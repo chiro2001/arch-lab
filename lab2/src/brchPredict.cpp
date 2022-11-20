@@ -111,8 +111,7 @@ private:
 /* ===================================================================== */
 class BHTPredictor : public BranchPredictor {
   size_t m_entries_log;
-  SaturatingCnt *m_scnt;              // BHT
-  allocator<SaturatingCnt> m_alloc;
+  vector<SaturatingCnt> m_scnt;              // BHT
   ADDRINT *targets;
 
 public:
@@ -126,17 +125,13 @@ public:
 
     targets = new ADDRINT[1 << entry_num_log];
     memset(targets, 0, sizeof(ADDRINT) * (1 << entry_num_log));
-    m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
-    // for (int i = 0; i < (1 << entry_num_log); i++)
-    //   m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
+    for (int i = 0; i < (1 << entry_num_log); i++) {
+      m_scnt.emplace_back(SaturatingCnt(scnt_width));
+    }
   }
 
   // Destructor
   ~BHTPredictor() {
-    for (int i = 0; i < (1 << m_entries_log); i++)
-      // m_alloc.destroy(m_scnt + i);
-
-    m_alloc.deallocate(m_scnt, 1 << m_entries_log);
     delete targets;
   }
 
@@ -185,9 +180,8 @@ public:
 template<UINT128 (*hash)(UINT128 addr, UINT128 history)>
 class GlobalHistoryPredictor : public BranchPredictor {
   ShiftReg *m_ghr;                   // GHR
-  SaturatingCnt *m_scnt;              // PHT中的分支历史字段
+  vector<SaturatingCnt> m_scnt;              // PHT中的分支历史字段
   size_t m_entries_log;                   // PHT行数的对数
-  allocator<SaturatingCnt> m_alloc;
 
 public:
   // Constructor
@@ -199,9 +193,8 @@ public:
     // TODO:
     m_entries_log = entry_num_log;
     m_ghr = new ShiftReg(ghr_width);
-    m_scnt = m_alloc.allocate(1 << entry_num_log);      // Allocate memory for BHT
-    // for (int i = 0; i < (1 << entry_num_log); i++)
-    //   m_alloc.construct(m_scnt + i, scnt_width);      // Call constructor of SaturatingCnt
+    for (int i = 0; i < (1 << entry_num_log); i++)
+      m_scnt.emplace_back(SaturatingCnt(scnt_width));
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) {
@@ -404,8 +397,8 @@ INT32 Usage() {
 int main(int argc, char *argv[]) {
   // BP = new BranchPredictor();
   // BP = new StaticPredictor();
-  // BP = new BHTPredictor();
-  BP = new GlobalHistoryPredictor<HashMethods::slice>();
+  BP = new BHTPredictor();
+  // BP = new GlobalHistoryPredictor<HashMethods::slice>();
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
