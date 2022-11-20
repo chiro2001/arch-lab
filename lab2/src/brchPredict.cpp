@@ -442,8 +442,9 @@ INT32 Usage() {
 int main(int argc, char *argv[]) {
   // BP = new BranchPredictor();
   // BP = new StaticPredictor();
-  BP = new BHTPredictor();
+  // BP = new BHTPredictor();
   // BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
+  BP = new GlobalHistoryPredictor<HashMethods::slice>();
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
