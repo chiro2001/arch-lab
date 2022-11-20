@@ -229,7 +229,7 @@ public:
   //          entry_num_log:  PHT表行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
   // PHT.w = 2+64+1
-  GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 12, size_t scnt_width = 2)
+  GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 11, size_t scnt_width = 2)
           : BHTPredictor(entry_num_log, scnt_width) {
     m_ghr = new ShiftReg(ghr_width);
   }
@@ -258,10 +258,6 @@ public:
     // TODO
   }
 
-  PHTLine &getLineFromAddr(ADDRINT addr) {
-    return lines[getTagFromAddr(addr)];
-  }
-
   bool predict(ADDRINT addr) {
     // Produce prediction according to GHR and PHT
     return getLineFromAddr(addr).cnt.isTaken();
@@ -269,13 +265,14 @@ public:
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr) {
     // Update GHR and PHT according to branch results and prediction
-    m_ghr->shiftIn(takenActually);
+    auto &line = getLineFromAddr(addr);
     if (takenActually) {
-      getLineFromAddr(addr).cnt.increase();
-      getLineFromAddr(addr).target = addr;
+      line.cnt.increase();
+      line.target = addr;
     } else {
-      getLineFromAddr(addr).cnt.decrease();
+      line.cnt.decrease();
     }
+    m_ghr->shiftIn(takenActually);
   }
 };
 
@@ -443,8 +440,8 @@ int main(int argc, char *argv[]) {
   // BP = new BranchPredictor();
   // BP = new StaticPredictor();
   // BP = new BHTPredictor();
-  // BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
-  BP = new GlobalHistoryPredictor<HashMethods::slice>();
+  BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
+  // BP = new GlobalHistoryPredictor<HashMethods::slice>();
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
