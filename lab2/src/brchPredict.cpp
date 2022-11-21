@@ -23,7 +23,7 @@ ofstream OutFile;
 // 将val截断, 使其宽度变成bits
 #define truncate(val, bits) ((val) & ((1 << (bits)) - 1))
 
-const static int TEST_SIZE = 5;
+const static int TEST_SIZE = 6;
 
 class TestResult {
 public:
@@ -237,6 +237,25 @@ public:
 };
 
 class HashMethods {
+private:
+  /**
+   * Fold data h into m bytes
+   * @tparam F
+   * @param h
+   * @param m
+   * @return
+   */
+  template<typename F>
+  static UINT128 fold(UINT128 h, UINT128 m, F const &f) {
+    UINT128 r = 0;
+    for (int i = 0; i < (128 / 8) / m; i++) {
+      auto s = ((1 << (8 * m)) - 1) & h;
+      h >>= (8 * m);
+      r = f(r, s);
+    }
+    return r;
+  }
+
 public:
   /**
    * Simply slice address to make hash, assert 4 bytes align
@@ -250,6 +269,10 @@ public:
 
   static UINT128 hash_xor(UINT128 addr, UINT128 history) {
     return (addr >> 2) ^ history;
+  }
+
+  static UINT128 fold_xor(UINT128 addr, UINT128 history) {
+    return fold(addr, 2, [](auto a, auto b) { return a ^ b; }) ^ history;
   }
 };
 
@@ -474,12 +497,13 @@ public:
       altpred = m_T[predictors_max_ghr_index2 + 1];
     }
     return provider->predict(addr);
-    // return 1;
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
-    // TODO: Update provider itself
-    m_T[0]->update(takenPredicted, takenPredicted, addr, target);
+    auto predict_provider = provider->predict(addr);
+    auto predict_altpred = altpred->predict(addr);
+    // Update provider itself
+    provider->update(takenPredicted, takenPredicted, addr, target);
 
     // TODO: Update usefulness
 
@@ -609,8 +633,9 @@ int main(int argc, char *argv[]) {
   SET_TEST_PREDICTOR(0, StaticPredictor());
   SET_TEST_PREDICTOR(1, BHTPredictor());
   SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
-  SET_TEST_PREDICTOR(3, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  SET_TEST_PREDICTOR(4, TAGEPredictor(5, 11, 8, 1.2, 10));
+  SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
+  SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+  SET_TEST_PREDICTOR(5, TAGEPredictor(5, 11, 8, 1.2, 10));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
