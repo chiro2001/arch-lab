@@ -115,13 +115,14 @@ private:
   ADDRINT predict(ADDRINT addr) { return rand() % 2; };
 };
 
-class BHTLine {
+class BHTEntry {
 public:
   bool valid = false;
   SaturatingCnt cnt;
   ADDRINT target = 0;
+  ADDRINT tag = 0;
 
-  explicit BHTLine(size_t width = 2) : cnt(SaturatingCnt(width)) {}
+  explicit BHTEntry(size_t width = 2) : cnt(SaturatingCnt(width)) {}
 
   void setVal(bool valid_, SaturatingCnt cnt_, ADDRINT target_) {
     valid = valid_;
@@ -130,7 +131,7 @@ public:
   }
 };
 
-using PHTLine = BHTLine;
+using PHTEntry = BHTEntry;
 
 /* ===================================================================== */
 /* BHT-based branch predictor                                            */
@@ -138,20 +139,20 @@ using PHTLine = BHTLine;
 class BHTPredictor : public BranchPredictor {
 protected:
   size_t m_entries_log;
-  vector<BHTLine> lines;              // BHT
+  vector<BHTEntry> entrys;              // BHT
   bool predict_address;
 
 public:
   // Constructor
   // param:   entry_num_log:  BHT行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
-  // max size 33 KiB, every line (2+64) bit, tot = 66 bit
+  // max size 33 KiB, every entry (2+64) bit, tot = 66 bit
   // 33 * 0x400 * 8 = 135168 > 66 * 2048 = 66 * 2^n, n = 11
   BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = true) {
     m_entries_log = entry_num_log;
     this->predict_address = predict_address;
     for (int i = 0; i < (1 << entry_num_log); i++) {
-      lines.emplace_back(BHTLine(scnt_width));
+      entrys.emplace_back(BHTEntry(scnt_width));
     }
   }
 
@@ -163,18 +164,18 @@ public:
     return truncate(addr >> 2, m_entries_log);
   }
 
-  BHTLine &getLineFromAddr(ADDRINT addr) {
+  BHTEntry &getEntryFromAddr(ADDRINT addr) {
     // assert address is aligned to 4 bytes
-    return lines[getTagFromAddr(addr)];
+    return entrys[getTagFromAddr(addr)];
   }
 
   ADDRINT predict(ADDRINT addr) override {
     // Produce prediction according to BHT
-    auto line = getLineFromAddr(addr);
+    auto entry = getEntryFromAddr(addr);
     if (predict_address) {
-      return line.cnt.isTaken() ? (line.target ? line.target : 1) : 0;
+      return entry.cnt.isTaken() ? (entry.target ? entry.target : 1) : 0;
     } else {
-      return line.cnt.isTaken() ? 1 : 0;
+      return entry.cnt.isTaken() ? 1 : 0;
     }
   }
 
@@ -183,33 +184,33 @@ public:
 
   void update(BOOL takenActually, BOOL takenPredicted, ADDRINT addr, ADDRINT target) override {
     // Update BHT according to branch results and prediction
-    auto &line = getLineFromAddr(addr);
+    auto &entry = getEntryFromAddr(addr);
     if (predict_address && false) {
       // is this logic ok...?
-      if (!line.valid) {
+      if (!entry.valid) {
         if (takenActually) {
-          line.valid = true;
-          line.cnt.reset();
-          line.target = target;
+          entry.valid = true;
+          entry.cnt.reset();
+          entry.target = target;
         }
       } else {
-        if (line.target == target) {
+        if (entry.target == target) {
           if (takenActually) {
-            line.cnt.increase();
-            line.target = target;
+            entry.cnt.increase();
+            entry.target = target;
           } else {
-            line.cnt.decrease();
+            entry.cnt.decrease();
           }
         } else {
-          line.valid = false;
+          entry.valid = false;
         }
       }
     } else {
       if (takenActually) {
-        line.cnt.increase();
-        line.target = target;
+        entry.cnt.increase();
+        entry.target = target;
       } else {
-        line.cnt.decrease();
+        entry.cnt.decrease();
       }
     }
   }
@@ -278,17 +279,17 @@ public:
 
   ADDRINT predict(ADDRINT addr) {
     // Produce prediction according to GHR and PHT
-    return getLineFromAddr(addr).cnt.isTaken() ? 1 : 0;
+    return getEntryFromAddr(addr).cnt.isTaken() ? 1 : 0;
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {
     // Update GHR and PHT according to branch results and prediction
-    auto &line = getLineFromAddr(addr);
+    auto &entry = getEntryFromAddr(addr);
     if (takenActually) {
-      line.cnt.increase();
-      line.target = addr;
+      entry.cnt.increase();
+      entry.target = addr;
     } else {
-      line.cnt.decrease();
+      entry.cnt.decrease();
     }
     m_ghr->shiftIn(takenActually);
   }
@@ -513,7 +514,7 @@ INT32 Usage() {
 /* ===================================================================== */
 /* Main                                                                  */
 /* ===================================================================== */
-/*   argc, argv are the entire command line: pin -t <toolname> -- ...    */
+/*   argc, argv are the entire command entry: pin -t <toolname> -- ...    */
 /* ===================================================================== */
 
 int main(int argc, char *argv[]) {
