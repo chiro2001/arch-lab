@@ -413,8 +413,8 @@ public:
 /* ===================================================================== */
 /* TArget GEometric history length Predictor                             */
 /* ===================================================================== */
-template<UINT128 (*hash1)(UINT128 pc, UINT128 ghr) = HashMethods::hash_xor,
-        UINT128 (*hash2)(UINT128 pc, UINT128 ghr) = HashMethods::slice>
+template<UINT128 (*hash1)(UINT128 pc, UINT128 ghr) = HashMethods::fold_xor,
+        UINT128 (*hash2)(UINT128 pc, UINT128 ghr) = HashMethods::hash_xor>
 class TAGEPredictor : public BranchPredictor {
   const size_t m_tnum;            // 子预测器个数 (T[0 : m_tnum - 1])
   const size_t m_entries_log;     // 子预测器T[1 : m_tnum - 1]的PHT行数的对数
@@ -484,7 +484,7 @@ public:
           tag_matched_count++;
           if (predictors_max_ghr < ghp->get_ghr_instance()->getMWid()) {
             predictors_max_ghr_index2 = predictors_max_ghr_index;
-            predictors_max_ghr_index = i - 1;
+            predictors_max_ghr_index = (int) i - 1;
           }
         }
       }
@@ -500,6 +500,7 @@ public:
       provider_index = predictors_max_ghr_index + 1;
       altpred_index = predictors_max_ghr_index2 + 1;
     }
+    // OutFile << "provider: " << provider_index << ", altpred: " << altpred_index << endl;
     return m_T[provider_index]->predict(addr);
   }
 
@@ -508,7 +509,7 @@ public:
     auto predict_altpred = m_T[altpred_index]->predict(addr);
     auto provider_entry_index = m_T[provider_index]->getTagFromAddr(addr);
     // Update provider itself
-    m_T[provider_index]->update(takenPredicted, takenPredicted, addr, target);
+    m_T[provider_index]->update(takenActually, takenPredicted, addr, target);
     auto branch_actually = (takenActually ? 1 : 0);
 
     // Update usefulness
