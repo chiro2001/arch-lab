@@ -3,8 +3,6 @@
 //
 #include <iostream>
 #include <fstream>
-#include <cassert>
-#include <stdarg.h>
 #include <cstdlib>
 #include <cstring>
 #include "pin.H"
@@ -109,6 +107,8 @@ public:
   virtual ADDRINT predict(ADDRINT addr) { return 0; };
 
   virtual void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {};
+
+  virtual uint64_t getTagFromAddr(ADDRINT addr) { return 0; };
 };
 
 BranchPredictor *BP[TEST_SIZE] = {0};
@@ -173,8 +173,10 @@ public:
   ~BHTPredictor() {
   }
 
-  virtual uint64_t getTagFromAddr(ADDRINT addr) {
-    return truncate(addr >> 2, m_entries_log);
+  uint64_t getTagFromAddr(ADDRINT addr) override {
+    uint64_t r = truncate(addr >> 2, m_entries_log);
+    // OutFile << "entries.size() = " << entries.size() << ", tag = " << r << endl;
+    return r;
   }
 
   virtual BHTEntry &getEntryFromAddr(ADDRINT addr) {
@@ -289,18 +291,20 @@ public:
   //          entry_num_log:  PHT表行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
   // PHT.w = 2+64+1
-  GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 11, size_t scnt_width = 2)
-          : BHTPredictor(entry_num_log, scnt_width) {
+  GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 11, size_t scnt_width = 2,
+                         bool predict_address = true)
+          : BHTPredictor(entry_num_log, scnt_width, predict_address) {
     m_ghr = new ShiftReg(ghr_width);
   }
 
   BHTEntry &getEntryFromAddr(ADDRINT addr) override {
-    // assert address is aligned to 4 bytes
     return entries[getTagFromAddr(addr)];
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) override {
-    return truncate(hash(addr, m_ghr->getVal()), m_entries_log);
+    uint64_t r = truncate(hash(addr, m_ghr->getVal()), m_entries_log);
+    // OutFile << "entries.size() = " << entries.size() << ", tag = " << r << endl;
+    return r;
   }
 
   // Destructor
@@ -328,7 +332,9 @@ public:
   ADDRINT predict(ADDRINT addr) override {
     // Produce prediction according to GHR and PHT
     auto entry = getEntryFromAddr(addr);
-    return entry.cnt.isTaken() ? (entry.target ? entry.target : 1) : 0;
+    if (predict_address)
+      return entry.cnt.isTaken() ? (entry.target ? entry.target : 1) : 0;
+    else return entry.cnt.isTaken();
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
@@ -415,8 +421,8 @@ class TAGEPredictor : public BranchPredictor {
   BranchPredictor **m_T;          // 子预测器指针数组
   bool *m_T_pred;                 // 用于存储各子预测的预测值
   UINT8 **m_useful;               // usefulness matrix
-  int provider_indx;              // Provider's index of m_T
-  int altpred_indx;               // Alternate provider's index of m_T
+  int provider_index = -1;         // Provider's index of m_T
+  int altpred_index = -1;          // Alternate provider's index of m_T
 
   const size_t m_rst_period;      // Reset period of usefulness
   size_t m_rst_cnt;               // Reset counter
@@ -438,12 +444,12 @@ public:
     m_T_pred = new bool[m_tnum];
     m_useful = new UINT8 *[m_tnum];
 
-    m_T[0] = new BHTPredictor(T0_entry_num_log);
+    m_T[0] = new BHTPredictor(T0_entry_num_log, 2, false);
     // m_T[0] = new StaticPredictor();
 
     size_t ghr_size = T1ghr_len;
     for (size_t i = 1; i < m_tnum; i++) {
-      m_T[i] = new GlobalHistoryPredictor<hash1>(ghr_size, m_entries_log, scnt_width);
+      m_T[i] = new GlobalHistoryPredictor<hash1>(ghr_size, m_entries_log, scnt_width, false);
       ghr_size = (size_t) ((double) ghr_size * alpha);
 
       m_useful[i] = new UINT8[1 << m_entries_log];
@@ -460,11 +466,9 @@ public:
     delete[] m_useful;
   }
 
-  BranchPredictor *provider = nullptr, *altpred = nullptr;
-  ADDRINT predictors_tags[tnum_max - 1];
-  bool tag_matched[tnum_max - 1];
-
   ADDRINT predict(ADDRINT addr) override {
+    ADDRINT predictors_tags[tnum_max - 1];
+    bool tag_matched[tnum_max - 1];
     UINT128 predictors_max_ghr = 0;
     int predictors_max_ghr_index = -1;
     int predictors_max_ghr_index2 = -1;
@@ -485,31 +489,87 @@ public:
         }
       }
     }
-    altpred = m_T[0];
+    altpred_index = 0;
     if (tag_matched_count == 0) {
       // use T0 as provider and altpred
-      provider = m_T[0];
+      provider_index = 0;
     } else if (tag_matched_count == 1) {
-      provider = m_T[predictors_max_ghr_index + 1];
+      provider_index = predictors_max_ghr_index + 1;
     } else {
       // count >= 2
-      provider = m_T[predictors_max_ghr_index + 1];
-      altpred = m_T[predictors_max_ghr_index2 + 1];
+      provider_index = predictors_max_ghr_index + 1;
+      altpred_index = predictors_max_ghr_index2 + 1;
     }
-    return provider->predict(addr);
+    return m_T[provider_index]->predict(addr);
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
-    auto predict_provider = provider->predict(addr);
-    auto predict_altpred = altpred->predict(addr);
+    auto predict_provider = m_T[provider_index]->predict(addr);
+    auto predict_altpred = m_T[altpred_index]->predict(addr);
+    auto provider_entry_index = m_T[provider_index]->getTagFromAddr(addr);
     // Update provider itself
-    provider->update(takenPredicted, takenPredicted, addr, target);
+    m_T[provider_index]->update(takenPredicted, takenPredicted, addr, target);
+    auto branch_actually = (takenActually ? 1 : 0);
 
-    // TODO: Update usefulness
+    // Update usefulness
+    if (provider_index != 0) {
+      if (predict_provider == branch_actually) {
+        m_useful[provider_index][provider_entry_index] = (m_useful[provider_index][provider_entry_index] + 1) & 0x3;
+      } else {
+        m_useful[provider_index][provider_entry_index] = (m_useful[provider_index][provider_entry_index] - 1) & 0x3;
+      }
+    }
 
-    // TODO: Reset usefulness periodically
+    // Reset usefulness periodically
+    m_rst_cnt++;
+    if (m_rst_cnt == m_rst_period) {
+      m_rst_cnt = 0;
+      for (int i = 0; i < m_tnum - 1; i++) {
+        memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
+      }
+    }
 
     // TODO: Entry replacement
+    vector<int> update_providers_rule1;
+    vector<int> update_providers_rule2;
+    if (predict_provider != branch_actually) {
+      auto ghp_provider = ((GlobalHistoryPredictor<hash1> *) (m_T[provider_index]));
+      // find a predictor that has longer history and usefulness==0
+      for (int i = 1; i < m_tnum; i++) {
+        if (i == provider_index) continue;
+        auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
+        bool longer_history;
+        if (provider_index != 0) {
+          longer_history = ghp->get_ghr_instance()->getMWid() > ghp_provider->get_ghr_instance()->getMWid();
+        } else {
+          longer_history = true;
+        }
+        if (longer_history) {
+          update_providers_rule1.emplace_back(i);
+        }
+        bool usefulness = m_useful[i][ghp->getTagFromAddr(addr)];
+        if (usefulness == 0 && longer_history) {
+          update_providers_rule2.emplace_back(i);
+        }
+      }
+    }
+    sort(update_providers_rule2.begin(), update_providers_rule2.end(),
+         [&](int &a, int &b) {
+           auto c = (GlobalHistoryPredictor<hash1> *) m_T[a];
+           auto d = (GlobalHistoryPredictor<hash1> *) m_T[b];
+           return c->get_ghr_instance()->getMWid() < d->get_ghr_instance()->getMWid();
+         });
+    for (auto &i: update_providers_rule2) {
+      auto p = (GlobalHistoryPredictor<hash1> *) m_T[i];
+      p->reset_ctr(addr);
+      memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
+    }
+    if (update_providers_rule2.empty() && !update_providers_rule1.empty()) {
+      for (auto &i: update_providers_rule1) {
+        auto p = (GlobalHistoryPredictor<hash1> *) m_T[i];
+        m_useful[i][p->getTagFromAddr(addr)] = (m_useful[i][p->getTagFromAddr(addr)] - 1) & 0x3;
+      }
+    }
   }
 };
 
