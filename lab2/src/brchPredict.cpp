@@ -87,7 +87,12 @@ public:
 
   virtual ~BranchPredictor() {}
 
-  virtual bool predict(ADDRINT addr) { return false; };
+  /**
+   * Predict take and pc
+   * @param addr PC to judge
+   * @return 0==not-taken 1==taken other==predicted-pc
+   */
+  virtual ADDRINT predict(ADDRINT addr) { return 0; };
 
   virtual void update(bool takenActually, bool takenPredicted, ADDRINT addr) {};
 };
@@ -105,7 +110,7 @@ public:
   }
 
 private:
-  bool predict(ADDRINT addr) { return rand() % 2 == 0; };
+  ADDRINT predict(ADDRINT addr) { return rand() % 2; };
 };
 
 class BHTLine {
@@ -161,9 +166,9 @@ public:
     return lines[getTagFromAddr(addr)];
   }
 
-  BOOL predict(ADDRINT addr) {
+  ADDRINT predict(ADDRINT addr) {
     // Produce prediction according to BHT
-    return getLineFromAddr(addr).cnt.isTaken();
+    return getLineFromAddr(addr).cnt.isTaken() ? 1 : 0;
   }
 
   void update(BOOL takenActually, BOOL takenPredicted, ADDRINT addr) {
@@ -258,9 +263,9 @@ public:
     // TODO
   }
 
-  bool predict(ADDRINT addr) {
+  ADDRINT predict(ADDRINT addr) {
     // Produce prediction according to GHR and PHT
-    return getLineFromAddr(addr).cnt.isTaken();
+    return getLineFromAddr(addr).cnt.isTaken() ? 1 : 0;
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr) {
@@ -348,9 +353,9 @@ public:
     delete[] m_useful;
   }
 
-  bool predict(ADDRINT addr) {
+  ADDRINT predict(ADDRINT addr) {
     // TODO
-    return true;
+    return 1;
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr) {
@@ -367,7 +372,7 @@ public:
 
 // This function is called every time a control-flow instruction is encountered
 void predictBranch(ADDRINT pc, BOOL direction) {
-  BOOL prediction = BP->predict(pc);
+  ADDRINT prediction = BP->predict(pc);
   BP->update(direction, prediction, pc);
   if (prediction) {
     if (direction)
