@@ -376,7 +376,7 @@ class TAGEPredictor : public BranchPredictor {
 
   const size_t m_rst_period;      // Reset period of usefulness
   size_t m_rst_cnt;               // Reset counter
-  const size_t tnum_max = 12;
+  static const size_t tnum_max = 12;
 
 public:
   // Constructor
@@ -415,16 +415,16 @@ public:
     delete[] m_useful;
   }
 
-  ADDRINT predict(ADDRINT addr) {
-    ADDRINT predict_results[tnum_max];
-    ADDRINT predictors_tags[tnum_max - 1];
+  BranchPredictor *provider = nullptr, *altpred = nullptr;
+  ADDRINT predictors_tags[tnum_max - 1];
+  bool tag_matched[tnum_max - 1];
+
+  ADDRINT predict(ADDRINT addr) override {
     UINT128 predictors_max_ghr = 0;
     int predictors_max_ghr_index = -1;
     int predictors_max_ghr_index2 = -1;
-    bool tag_matched[tnum_max - 1];
     int tag_matched_count = 0;
-    for (int i = 0; i < m_tnum; i++) {
-      predict_results[i] = m_T[i]->predict(addr);
+    for (size_t i = 0; i < m_tnum; i++) {
       if (i != 0) {
         auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
         auto entry = ghp->getEntryFromAddr(addr);
@@ -440,7 +440,7 @@ public:
         }
       }
     }
-    BranchPredictor *provider = nullptr, *altpred = m_T[0];
+    altpred = m_T[0];
     if (tag_matched_count == 0) {
       // use T0 as provider and altpred
       provider = m_T[0];
@@ -451,10 +451,11 @@ public:
       provider = m_T[predictors_max_ghr_index + 1];
       altpred = m_T[predictors_max_ghr_index2 + 1];
     }
+    // TODO: fixme
     return provider->predict(addr);
   }
 
-  void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {
+  void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
     // TODO: Update provider itself
 
     // TODO: Update usefulness
