@@ -151,7 +151,7 @@ using PHTEntry = BHTEntry;
 class BHTPredictor : public BranchPredictor {
 protected:
   size_t m_entries_log;
-  vector<BHTEntry> entrys;              // BHT
+  vector<BHTEntry> entries;              // BHT
   bool predict_address;
 
 public:
@@ -160,11 +160,12 @@ public:
   //          scnt_width:     饱和计数器的位数, 默认值为2
   // max size 33 KiB, every entry (2+64) bit, tot = 66 bit
   // 33 * 0x400 * 8 = 135168 > 66 * 2048 = 66 * 2^n, n = 11
-  BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = true) {
+  explicit BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = true) {
     m_entries_log = entry_num_log;
     this->predict_address = predict_address;
+    // OutFile << this << " Init entries, entry_num_log = " << entry_num_log << endl;
     for (int i = 0; i < (1 << entry_num_log); i++) {
-      entrys.emplace_back(BHTEntry(scnt_width));
+      entries.emplace_back(BHTEntry(scnt_width));
     }
   }
 
@@ -178,7 +179,12 @@ public:
 
   virtual BHTEntry &getEntryFromAddr(ADDRINT addr) {
     // assert address is aligned to 4 bytes
-    return entrys[getTagFromAddr(addr)];
+    auto index = getTagFromAddr(addr);
+    if (index >= entries.size()) {
+      OutFile << this << " Err: Out of vec index " << index << endl;
+      exit(1);
+    }
+    return entries[index];
   }
 
   ADDRINT predict(ADDRINT addr) override {
@@ -267,7 +273,7 @@ public:
 
   BHTEntry &getEntryFromAddr(ADDRINT addr) override {
     // assert address is aligned to 4 bytes
-    return entrys[getTagFromAddr(addr)];
+    return entries[getTagFromAddr(addr)];
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) override {
@@ -296,13 +302,13 @@ public:
     getEntryFromAddr(addr).cnt.reset();
   }
 
-  ADDRINT predict(ADDRINT addr) {
+  ADDRINT predict(ADDRINT addr) override {
     // Produce prediction according to GHR and PHT
     auto entry = getEntryFromAddr(addr);
     return entry.cnt.isTaken() ? (entry.target ? entry.target : 1) : 0;
   }
 
-  void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {
+  void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
     // Update GHR and PHT according to branch results and prediction
     auto &entry = getEntryFromAddr(addr);
     if (takenActually) {
@@ -409,7 +415,8 @@ public:
     m_T_pred = new bool[m_tnum];
     m_useful = new UINT8 *[m_tnum];
 
-    m_T[0] = new BHTPredictor(1 << T0_entry_num_log);
+    m_T[0] = new BHTPredictor(T0_entry_num_log);
+    // m_T[0] = new StaticPredictor();
 
     size_t ghr_size = T1ghr_len;
     for (size_t i = 1; i < m_tnum; i++) {
@@ -435,46 +442,44 @@ public:
   bool tag_matched[tnum_max - 1];
 
   ADDRINT predict(ADDRINT addr) override {
-    // UINT128 predictors_max_ghr = 0;
-    // int predictors_max_ghr_index = -1;
-    // int predictors_max_ghr_index2 = -1;
-    // int tag_matched_count = 0;
-    // for (size_t i = 0; i < m_tnum; i++) {
-    //   if (i != 0) {
-    //     auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
-    //     auto entry = ghp->getEntryFromAddr(addr);
-    //     predictors_tags[i - 1] = ghp->get_tag(addr);
-    //     auto h2 = hash2(addr, ghp->get_ghr_instance()->getVal());
-    //     tag_matched[i - 1] = entry.tag == h2;
-    //     if (tag_matched[i - 1]) {
-    //       tag_matched_count++;
-    //       if (predictors_max_ghr < ghp->get_ghr_instance()->getMWid()) {
-    //         predictors_max_ghr_index2 = predictors_max_ghr_index;
-    //         predictors_max_ghr_index = i - 1;
-    //       }
-    //     }
-    //   }
-    // }
-    // altpred = m_T[0];
-    // provider = m_T[0];
-    // if (tag_matched_count == 0) {
-    //   // use T0 as provider and altpred
-    //   // provider = m_T[0];
-    // } else if (tag_matched_count == 1) {
-    //   // provider = m_T[predictors_max_ghr_index + 1];
-    // } else {
-    //   // count >= 2
-    //   // provider = m_T[predictors_max_ghr_index + 1];
-    //   // altpred = m_T[predictors_max_ghr_index2 + 1];
-    // }
-    // return provider->predict(0);
-    // return m_T[0]->predict(addr);
-    return 1;
+    UINT128 predictors_max_ghr = 0;
+    int predictors_max_ghr_index = -1;
+    int predictors_max_ghr_index2 = -1;
+    int tag_matched_count = 0;
+    for (size_t i = 0; i < m_tnum; i++) {
+      if (i != 0) {
+        auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
+        auto entry = ghp->getEntryFromAddr(addr);
+        predictors_tags[i - 1] = ghp->get_tag(addr);
+        auto h2 = hash2(addr, ghp->get_ghr_instance()->getVal());
+        tag_matched[i - 1] = entry.tag == h2;
+        if (tag_matched[i - 1]) {
+          tag_matched_count++;
+          if (predictors_max_ghr < ghp->get_ghr_instance()->getMWid()) {
+            predictors_max_ghr_index2 = predictors_max_ghr_index;
+            predictors_max_ghr_index = i - 1;
+          }
+        }
+      }
+    }
+    altpred = m_T[0];
+    if (tag_matched_count == 0) {
+      // use T0 as provider and altpred
+      provider = m_T[0];
+    } else if (tag_matched_count == 1) {
+      provider = m_T[predictors_max_ghr_index + 1];
+    } else {
+      // count >= 2
+      provider = m_T[predictors_max_ghr_index + 1];
+      altpred = m_T[predictors_max_ghr_index2 + 1];
+    }
+    return provider->predict(addr);
+    // return 1;
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
     // TODO: Update provider itself
-    // m_T[0]->update(takenPredicted, takenPredicted, addr, target);
+    m_T[0]->update(takenPredicted, takenPredicted, addr, target);
 
     // TODO: Update usefulness
 
@@ -596,16 +601,16 @@ INT32 Usage() {
 } while (0)
 
 int main(int argc, char *argv[]) {
+  // Initialize pin
+  if (PIN_Init(argc, argv)) return Usage();
+
+  OutFile.open(KnobOutputFile.Value().c_str());
+
   SET_TEST_PREDICTOR(0, StaticPredictor());
   SET_TEST_PREDICTOR(1, BHTPredictor());
   SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
   SET_TEST_PREDICTOR(3, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
   SET_TEST_PREDICTOR(4, TAGEPredictor(5, 11, 8, 1.2, 10));
-
-  // Initialize pin
-  if (PIN_Init(argc, argv)) return Usage();
-
-  OutFile.open(KnobOutputFile.Value().c_str());
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
