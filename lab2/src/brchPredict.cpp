@@ -172,11 +172,11 @@ public:
   ~BHTPredictor() {
   }
 
-  uint64_t getTagFromAddr(ADDRINT addr) {
+  virtual uint64_t getTagFromAddr(ADDRINT addr) {
     return truncate(addr >> 2, m_entries_log);
   }
 
-  BHTEntry &getEntryFromAddr(ADDRINT addr) {
+  virtual BHTEntry &getEntryFromAddr(ADDRINT addr) {
     // assert address is aligned to 4 bytes
     return entrys[getTagFromAddr(addr)];
   }
@@ -265,7 +265,12 @@ public:
     m_ghr = new ShiftReg(ghr_width);
   }
 
-  uint64_t getTagFromAddr(ADDRINT addr) {
+  BHTEntry &getEntryFromAddr(ADDRINT addr) override {
+    // assert address is aligned to 4 bytes
+    return entrys[getTagFromAddr(addr)];
+  }
+
+  uint64_t getTagFromAddr(ADDRINT addr) override {
     return truncate(hash(addr, m_ghr->getVal()), m_entries_log);
   }
 
@@ -293,7 +298,8 @@ public:
 
   ADDRINT predict(ADDRINT addr) {
     // Produce prediction according to GHR and PHT
-    return getEntryFromAddr(addr).cnt.isTaken() ? 1 : 0;
+    auto entry = getEntryFromAddr(addr);
+    return entry.cnt.isTaken() ? (entry.target ? entry.target : 1) : 0;
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {
@@ -301,7 +307,7 @@ public:
     auto &entry = getEntryFromAddr(addr);
     if (takenActually) {
       entry.cnt.increase();
-      entry.target = addr;
+      entry.target = target;
     } else {
       entry.cnt.decrease();
     }
@@ -372,7 +378,8 @@ public:
 /* ===================================================================== */
 /* TArget GEometric history length Predictor                             */
 /* ===================================================================== */
-template<UINT128 (*hash1)(UINT128 pc, UINT128 ghr), UINT128 (*hash2)(UINT128 pc, UINT128 ghr)>
+template<UINT128 (*hash1)(UINT128 pc, UINT128 ghr) = HashMethods::hash_xor,
+        UINT128 (*hash2)(UINT128 pc, UINT128 ghr) = HashMethods::slice>
 class TAGEPredictor : public BranchPredictor {
   const size_t m_tnum;            // 子预测器个数 (T[0 : m_tnum - 1])
   const size_t m_entries_log;     // 子预测器T[1 : m_tnum - 1]的PHT行数的对数
@@ -428,43 +435,46 @@ public:
   bool tag_matched[tnum_max - 1];
 
   ADDRINT predict(ADDRINT addr) override {
-    UINT128 predictors_max_ghr = 0;
-    int predictors_max_ghr_index = -1;
-    int predictors_max_ghr_index2 = -1;
-    int tag_matched_count = 0;
-    for (size_t i = 0; i < m_tnum; i++) {
-      if (i != 0) {
-        auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
-        auto entry = ghp->getEntryFromAddr(addr);
-        predictors_tags[i - 1] = ghp->get_tag(addr);
-        auto h2 = hash2(addr, ghp->get_ghr_instance()->getVal());
-        tag_matched[i - 1] = entry.tag == h2;
-        if (tag_matched[i - 1]) {
-          tag_matched_count++;
-          if (predictors_max_ghr < ghp->get_ghr_instance()->getMWid()) {
-            predictors_max_ghr_index2 = predictors_max_ghr_index;
-            predictors_max_ghr_index = i - 1;
-          }
-        }
-      }
-    }
-    altpred = m_T[0];
-    if (tag_matched_count == 0) {
-      // use T0 as provider and altpred
-      provider = m_T[0];
-    } else if (tag_matched_count == 1) {
-      provider = m_T[predictors_max_ghr_index + 1];
-    } else {
-      // count >= 2
-      provider = m_T[predictors_max_ghr_index + 1];
-      altpred = m_T[predictors_max_ghr_index2 + 1];
-    }
-    // TODO: fixme
-    return provider->predict(addr);
+    // UINT128 predictors_max_ghr = 0;
+    // int predictors_max_ghr_index = -1;
+    // int predictors_max_ghr_index2 = -1;
+    // int tag_matched_count = 0;
+    // for (size_t i = 0; i < m_tnum; i++) {
+    //   if (i != 0) {
+    //     auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
+    //     auto entry = ghp->getEntryFromAddr(addr);
+    //     predictors_tags[i - 1] = ghp->get_tag(addr);
+    //     auto h2 = hash2(addr, ghp->get_ghr_instance()->getVal());
+    //     tag_matched[i - 1] = entry.tag == h2;
+    //     if (tag_matched[i - 1]) {
+    //       tag_matched_count++;
+    //       if (predictors_max_ghr < ghp->get_ghr_instance()->getMWid()) {
+    //         predictors_max_ghr_index2 = predictors_max_ghr_index;
+    //         predictors_max_ghr_index = i - 1;
+    //       }
+    //     }
+    //   }
+    // }
+    // altpred = m_T[0];
+    // provider = m_T[0];
+    // if (tag_matched_count == 0) {
+    //   // use T0 as provider and altpred
+    //   // provider = m_T[0];
+    // } else if (tag_matched_count == 1) {
+    //   // provider = m_T[predictors_max_ghr_index + 1];
+    // } else {
+    //   // count >= 2
+    //   // provider = m_T[predictors_max_ghr_index + 1];
+    //   // altpred = m_T[predictors_max_ghr_index2 + 1];
+    // }
+    // return provider->predict(0);
+    // return m_T[0]->predict(addr);
+    return 1;
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
     // TODO: Update provider itself
+    // m_T[0]->update(takenPredicted, takenPredicted, addr, target);
 
     // TODO: Update usefulness
 
@@ -529,7 +539,8 @@ VOID Fini(int, VOID *v) {
     if (!BP[i]) continue;
     auto r = results[i];
     double precision = 100 * double(r.takenCorrect + r.notTakenCorrect) /
-                       (r.takenCorrect + r.notTakenCorrect + r.takenIncorrect + r.notTakenIncorrect);
+                       ((double) r.takenCorrect + (double) r.notTakenCorrect + (double) r.takenIncorrect +
+                        (double) r.notTakenIncorrect);
 
     cout << "result[" << i << "] name: " << r.name << endl
          << "takenCorrect: " << r.takenCorrect << endl
@@ -589,11 +600,7 @@ int main(int argc, char *argv[]) {
   SET_TEST_PREDICTOR(1, BHTPredictor());
   SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
   SET_TEST_PREDICTOR(3, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-// #define TAGE_ARGS 5, 11, 8, 1.2, 10
-//   BP[4] = new TAGEPredictor<HashMethods::hash_xor, HashMethods::slice>(TAGE_ARGS);
-//   char tage_name[128];
-//   sprintf(tage_name, "tnum=%d, T0_entry_num_log=%d, T1ghr_len=%d, alpha=%f, Tn_entry_num_log=%d", TAGE_ARGS);
-//   results[4].name = tage_name;
+  SET_TEST_PREDICTOR(4, TAGEPredictor(5, 11, 8, 1.2, 10));
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();

@@ -35,7 +35,7 @@ function(apply_pin_target target)
             PIN_CRT=1
             )
     target_compile_options(${target} INTERFACE
-            -Wall
+            #-Wall
             -Werror
             -Wno-unknown-pragmas
             # for all compilers
