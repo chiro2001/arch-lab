@@ -23,12 +23,20 @@ ofstream OutFile;
 // 将val截断, 使其宽度变成bits
 #define truncate(val, bits) ((val) & ((1 << (bits)) - 1))
 
-static UINT64 takenPcCorrect = 0;
-static UINT64 takenPcIncorrect = 0;
-static UINT64 takenCorrect = 0;
-static UINT64 takenIncorrect = 0;
-static UINT64 notTakenCorrect = 0;
-static UINT64 notTakenIncorrect = 0;
+const static int TEST_SIZE = 5;
+
+class TestResult {
+public:
+  UINT64 takenPcCorrect = 0;
+  UINT64 takenPcIncorrect = 0;
+  UINT64 takenCorrect = 0;
+  UINT64 takenIncorrect = 0;
+  UINT64 notTakenCorrect = 0;
+  UINT64 notTakenIncorrect = 0;
+  const char *name = "Unknown";
+};
+
+static TestResult results[TEST_SIZE];
 
 // 饱和计数器 (N < 64)
 class SaturatingCnt {
@@ -103,7 +111,7 @@ public:
   virtual void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {};
 };
 
-BranchPredictor *BP;
+BranchPredictor *BP[TEST_SIZE] = {0};
 
 
 /**
@@ -469,27 +477,32 @@ public:
 
 // This function is called every time a control-flow instruction is encountered
 void predictBranch(ADDRINT pc, BOOL direction, ADDRINT target) {
-  ADDRINT prediction = BP->predict(pc);
-  BP->update(direction, prediction, pc, target);
-  if (prediction) {
-    if (direction)
-      takenCorrect++;
-    else
-      takenIncorrect++;
-    // == 1 means no prediction
-    if (prediction != 1) {
-      if (prediction == target) {
-        takenPcCorrect++;
-      } else {
-        takenPcIncorrect++;
-        // OutFile << "Incorrect predict:real = " << hex << (int) prediction << ":" << (int) target << endl;
+  for (int i = 0; i < TEST_SIZE; i++) {
+    auto P = BP[i];
+    if (!P) continue;
+    auto &r = results[i];
+    ADDRINT prediction = P->predict(pc);
+    P->update(direction, prediction, pc, target);
+    if (prediction) {
+      if (direction)
+        r.takenCorrect++;
+      else
+        r.takenIncorrect++;
+      // == 1 means no prediction
+      if (prediction != 1) {
+        if (prediction == target) {
+          r.takenPcCorrect++;
+        } else {
+          r.takenPcIncorrect++;
+          // OutFile << "Incorrect predict:real = " << hex << (int) prediction << ":" << (int) target << endl;
+        }
       }
+    } else {
+      if (direction)
+        r.notTakenIncorrect++;
+      else
+        r.notTakenCorrect++;
     }
-  } else {
-    if (direction)
-      notTakenIncorrect++;
-    else
-      notTakenCorrect++;
   }
 }
 
@@ -512,35 +525,42 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "brchPredict.tx
 
 // This function is called when the application exits
 VOID Fini(int, VOID *v) {
-  double precision = 100 * double(takenCorrect + notTakenCorrect) /
-                     (takenCorrect + notTakenCorrect + takenIncorrect + notTakenIncorrect);
+  for (int i = 0; i < TEST_SIZE; i++) {
+    if (!BP[i]) continue;
+    auto r = results[i];
+    double precision = 100 * double(r.takenCorrect + r.notTakenCorrect) /
+                       (r.takenCorrect + r.notTakenCorrect + r.takenIncorrect + r.notTakenIncorrect);
 
-  cout << "takenCorrect: " << takenCorrect << endl
-       << "takenIncorrect: " << takenIncorrect << endl
-       << "notTakenCorrect: " << notTakenCorrect << endl
-       << "notTakenIncorrect: " << notTakenIncorrect << endl
-       << "Precision: " << precision << endl;
-  if (takenPcCorrect != 0 || takenPcIncorrect != 0)
-    cout << "takenPcCorrect: " << takenPcCorrect << endl
-         << "takenPcIncorrect: " << takenPcIncorrect << endl
-         << "PcPrecision: " << (100.0 * (double) takenPcCorrect / ((double) takenPcCorrect + (double) takenPcIncorrect))
-         << endl;
+    cout << "result[" << i << "] name: " << r.name << endl
+         << "takenCorrect: " << r.takenCorrect << endl
+         << "takenIncorrect: " << r.takenIncorrect << endl
+         << "notTakenCorrect: " << r.notTakenCorrect << endl
+         << "notTakenIncorrect: " << r.notTakenIncorrect << endl
+         << "Precision: " << precision << endl;
+    if (r.takenPcCorrect != 0 || r.takenPcIncorrect != 0)
+      cout << "takenPcCorrect: " << r.takenPcCorrect << endl
+           << "takenPcIncorrect: " << r.takenPcIncorrect << endl
+           << "PcPrecision: "
+           << (100.0 * (double) r.takenPcCorrect / ((double) r.takenPcCorrect + (double) r.takenPcIncorrect))
+           << endl;
 
-  OutFile.setf(ios::showbase);
-  OutFile << "takenCorrect: " << takenCorrect << endl
-          << "takenIncorrect: " << takenIncorrect << endl
-          << "notTakenCorrect: " << notTakenCorrect << endl
-          << "notTakenIncorrect: " << notTakenIncorrect << endl
-          << "Precision: " << precision << endl;
-  if (takenPcCorrect != 0 || takenPcIncorrect != 0)
-    OutFile << "takenPcCorrect: " << takenPcCorrect << endl
-            << "takenPcIncorrect: " << takenPcIncorrect << endl
-            << "PcPrecision: "
-            << (100.0 * (double) takenPcCorrect / ((double) takenPcCorrect + (double) takenPcIncorrect))
-            << endl;
+    OutFile.setf(ios::showbase);
+    OutFile << "result[" << i << "] name: " << r.name << endl
+            << "takenCorrect: " << r.takenCorrect << endl
+            << "takenIncorrect: " << r.takenIncorrect << endl
+            << "notTakenCorrect: " << r.notTakenCorrect << endl
+            << "notTakenIncorrect: " << r.notTakenIncorrect << endl
+            << "Precision: " << precision << endl;
+    if (r.takenPcCorrect != 0 || r.takenPcIncorrect != 0)
+      OutFile << "takenPcCorrect: " << r.takenPcCorrect << endl
+              << "takenPcIncorrect: " << r.takenPcIncorrect << endl
+              << "PcPrecision: "
+              << (100.0 * (double) r.takenPcCorrect / ((double) r.takenPcCorrect + (double) r.takenPcIncorrect))
+              << endl;
 
+    delete BP[i];
+  }
   OutFile.close();
-  delete BP;
 }
 
 /* ===================================================================== */
@@ -559,14 +579,21 @@ INT32 Usage() {
 /*   argc, argv are the entire command entry: pin -t <toolname> -- ...    */
 /* ===================================================================== */
 
+#define SET_TEST_PREDICTOR(index, inst) do {   \
+  BP[(index)] = (new inst);                    \
+  results[(index)].name = #inst;               \
+} while (0)
+
 int main(int argc, char *argv[]) {
-  // BP = new BranchPredictor();
-  // BP = new StaticPredictor();
-  // BP = new BHTPredictor();
-  // BP = new GlobalHistoryPredictor<HashMethods::slice>();
-  // BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
-  // BP = new TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>());
-  BP = new TAGEPredictor<HashMethods::hash_xor, HashMethods::slice>(5, 11, 8, 1.2, 10);
+  SET_TEST_PREDICTOR(0, StaticPredictor());
+  SET_TEST_PREDICTOR(1, BHTPredictor());
+  SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
+  SET_TEST_PREDICTOR(3, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+// #define TAGE_ARGS 5, 11, 8, 1.2, 10
+//   BP[4] = new TAGEPredictor<HashMethods::hash_xor, HashMethods::slice>(TAGE_ARGS);
+//   char tage_name[128];
+//   sprintf(tage_name, "tnum=%d, T0_entry_num_log=%d, T1ghr_len=%d, alpha=%f, Tn_entry_num_log=%d", TAGE_ARGS);
+//   results[4].name = tage_name;
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
