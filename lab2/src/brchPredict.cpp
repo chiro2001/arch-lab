@@ -23,6 +23,8 @@ ofstream OutFile;
 // 将val截断, 使其宽度变成bits
 #define truncate(val, bits) ((val) & ((1 << (bits)) - 1))
 
+static UINT64 takenPcCorrect = 0;
+static UINT64 takenPcIncorrect = 0;
 static UINT64 takenCorrect = 0;
 static UINT64 takenIncorrect = 0;
 static UINT64 notTakenCorrect = 0;
@@ -94,7 +96,7 @@ public:
    */
   virtual ADDRINT predict(ADDRINT addr) { return 0; };
 
-  virtual void update(bool takenActually, bool takenPredicted, ADDRINT addr) {};
+  virtual void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {};
 };
 
 BranchPredictor *BP;
@@ -145,7 +147,7 @@ public:
   //          scnt_width:     饱和计数器的位数, 默认值为2
   // max size 33 KiB, every line (2+64) bit, tot = 66 bit
   // 33 * 0x400 * 8 = 135168 > 66 * 2048 = 66 * 2^n, n = 11
-  BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = false) {
+  BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = true) {
     m_entries_log = entry_num_log;
     this->predict_address = predict_address;
     for (int i = 0; i < (1 << entry_num_log); i++) {
@@ -166,26 +168,32 @@ public:
     return lines[getTagFromAddr(addr)];
   }
 
-  ADDRINT predict(ADDRINT addr) {
+  ADDRINT predict(ADDRINT addr) override {
     // Produce prediction according to BHT
-    return getLineFromAddr(addr).cnt.isTaken() ? 1 : 0;
+    auto line = getLineFromAddr(addr);
+    if (predict_address) {
+      return line.cnt.isTaken() ? (line.target ? line.target : 1) : 0;
+    } else {
+      return line.cnt.isTaken() ? 1 : 0;
+    }
   }
 
-  void update(BOOL takenActually, BOOL takenPredicted, ADDRINT addr) {
+  void update(BOOL takenActually, BOOL takenPredicted, ADDRINT addr, ADDRINT target) override {
     // Update BHT according to branch results and prediction
     auto &line = getLineFromAddr(addr);
-    if (predict_address) {
+    if (predict_address && false) {
+      // is this logic ok..?
       if (!line.valid) {
         if (takenActually) {
           line.valid = true;
           line.cnt.reset();
-          line.target = addr;
+          line.target = target;
         }
       } else {
-        if (line.target == addr) {
+        if (line.target == target) {
           if (takenActually) {
             line.cnt.increase();
-            line.target = addr;
+            line.target = target;
           } else {
             line.cnt.decrease();
           }
@@ -196,7 +204,7 @@ public:
     } else {
       if (takenActually) {
         line.cnt.increase();
-        line.target = addr;
+        line.target = target;
       } else {
         line.cnt.decrease();
       }
@@ -268,7 +276,7 @@ public:
     return getLineFromAddr(addr).cnt.isTaken() ? 1 : 0;
   }
 
-  void update(bool takenActually, bool takenPredicted, ADDRINT addr) {
+  void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {
     // Update GHR and PHT according to branch results and prediction
     auto &line = getLineFromAddr(addr);
     if (takenActually) {
@@ -358,7 +366,7 @@ public:
     return 1;
   }
 
-  void update(bool takenActually, bool takenPredicted, ADDRINT addr) {
+  void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {
     // TODO: Update provider itself
 
     // TODO: Update usefulness
@@ -371,14 +379,23 @@ public:
 
 
 // This function is called every time a control-flow instruction is encountered
-void predictBranch(ADDRINT pc, BOOL direction) {
+void predictBranch(ADDRINT pc, BOOL direction, ADDRINT target) {
   ADDRINT prediction = BP->predict(pc);
-  BP->update(direction, prediction, pc);
+  BP->update(direction, prediction, pc, target);
   if (prediction) {
     if (direction)
       takenCorrect++;
     else
       takenIncorrect++;
+    // == 1 means no prediction
+    if (prediction != 1) {
+      if (prediction == target) {
+        takenPcCorrect++;
+      } else {
+        takenPcIncorrect++;
+        // OutFile << "Incorrect predict:real = " << hex << (int) prediction << ":" << (int) target << endl;
+      }
+    }
   } else {
     if (direction)
       notTakenIncorrect++;
@@ -392,11 +409,12 @@ void Instruction(INS ins, void *v) {
   if (INS_IsControlFlow(ins) && INS_HasFallThrough(ins)) {
     // Insert a call to the branch target
     INS_InsertCall(ins, IPOINT_TAKEN_BRANCH, (AFUNPTR) predictBranch,
-                   IARG_INST_PTR, IARG_BOOL, TRUE, IARG_END);
+                   IARG_INST_PTR, IARG_BOOL, TRUE, IARG_BRANCH_TARGET_ADDR, IARG_END);
 
+    // IARG_INST_PTR: This value does not change at IPOINT_AFTER.
     // Insert a call to the next instruction of a branch
     INS_InsertCall(ins, IPOINT_AFTER, (AFUNPTR) predictBranch,
-                   IARG_INST_PTR, IARG_BOOL, FALSE, IARG_END);
+                   IARG_INST_PTR, IARG_BOOL, FALSE, IARG_BRANCH_TARGET_ADDR, IARG_END);
   }
 }
 
@@ -413,6 +431,11 @@ VOID Fini(int, VOID *v) {
        << "notTakenCorrect: " << notTakenCorrect << endl
        << "notTakenIncorrect: " << notTakenIncorrect << endl
        << "Precision: " << precision << endl;
+  if (takenPcCorrect != 0 || takenPcIncorrect != 0)
+    cout << "takenPcCorrect: " << takenPcCorrect << endl
+         << "takenPcIncorrect: " << takenPcIncorrect << endl
+         << "PcPrecision: " << (100.0 * (double) takenPcCorrect / ((double) takenPcCorrect + (double) takenPcIncorrect))
+         << endl;
 
   OutFile.setf(ios::showbase);
   OutFile << "takenCorrect: " << takenCorrect << endl
@@ -420,6 +443,12 @@ VOID Fini(int, VOID *v) {
           << "notTakenCorrect: " << notTakenCorrect << endl
           << "notTakenIncorrect: " << notTakenIncorrect << endl
           << "Precision: " << precision << endl;
+  if (takenPcCorrect != 0 || takenPcIncorrect != 0)
+    OutFile << "takenPcCorrect: " << takenPcCorrect << endl
+            << "takenPcIncorrect: " << takenPcIncorrect << endl
+            << "PcPrecision: "
+            << (100.0 * (double) takenPcCorrect / ((double) takenPcCorrect + (double) takenPcIncorrect))
+            << endl;
 
   OutFile.close();
   delete BP;
@@ -444,9 +473,9 @@ INT32 Usage() {
 int main(int argc, char *argv[]) {
   // BP = new BranchPredictor();
   // BP = new StaticPredictor();
-  // BP = new BHTPredictor();
-  BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
+  BP = new BHTPredictor();
   // BP = new GlobalHistoryPredictor<HashMethods::slice>();
+  // BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
