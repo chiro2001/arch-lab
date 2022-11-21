@@ -72,6 +72,10 @@ public:
   }
 
   UINT128 getVal() { return m_val; }
+
+  size_t getMWid() const {
+    return m_wid;
+  }
 };
 
 // Hash functions
@@ -262,19 +266,21 @@ public:
 
   // Only for TAGE: return a tag according to the specificed address
   UINT128 get_tag(ADDRINT addr) {
-    // TODO
-    return 0;
+    return getEntryFromAddr(addr).tag;
   }
 
   // Only for TAGE: return GHR's value
   UINT128 get_ghr() {
-    // TODO
-    return 0;
+    return m_ghr->getVal();
+  }
+
+  ShiftReg *get_ghr_instance() const {
+    return m_ghr;
   }
 
   // Only for TAGE: reset a saturating counter to default value (which is weak taken)
   void reset_ctr(ADDRINT addr) {
-    // TODO
+    getEntryFromAddr(addr).cnt.reset();
   }
 
   ADDRINT predict(ADDRINT addr) {
@@ -370,6 +376,7 @@ class TAGEPredictor : public BranchPredictor {
 
   const size_t m_rst_period;      // Reset period of usefulness
   size_t m_rst_cnt;               // Reset counter
+  const size_t tnum_max = 12;
 
 public:
   // Constructor
@@ -392,7 +399,7 @@ public:
     size_t ghr_size = T1ghr_len;
     for (size_t i = 1; i < m_tnum; i++) {
       m_T[i] = new GlobalHistoryPredictor<hash1>(ghr_size, m_entries_log, scnt_width);
-      ghr_size = (size_t) (ghr_size * alpha);
+      ghr_size = (size_t) ((double) ghr_size * alpha);
 
       m_useful[i] = new UINT8[1 << m_entries_log];
       memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
@@ -409,8 +416,42 @@ public:
   }
 
   ADDRINT predict(ADDRINT addr) {
-    // TODO
-    return 1;
+    ADDRINT predict_results[tnum_max];
+    ADDRINT predictors_tags[tnum_max - 1];
+    UINT128 predictors_max_ghr = 0;
+    int predictors_max_ghr_index = -1;
+    int predictors_max_ghr_index2 = -1;
+    bool tag_matched[tnum_max - 1];
+    int tag_matched_count = 0;
+    for (int i = 0; i < m_tnum; i++) {
+      predict_results[i] = m_T[i]->predict(addr);
+      if (i != 0) {
+        auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
+        auto entry = ghp->getEntryFromAddr(addr);
+        predictors_tags[i - 1] = ghp->get_tag(addr);
+        auto h2 = hash2(addr, ghp->get_ghr_instance()->getVal());
+        tag_matched[i - 1] = entry.tag == h2;
+        if (tag_matched[i - 1]) {
+          tag_matched_count++;
+          if (predictors_max_ghr < ghp->get_ghr_instance()->getMWid()) {
+            predictors_max_ghr_index2 = predictors_max_ghr_index;
+            predictors_max_ghr_index = i - 1;
+          }
+        }
+      }
+    }
+    BranchPredictor *provider = nullptr, *altpred = m_T[0];
+    if (tag_matched_count == 0) {
+      // use T0 as provider and altpred
+      provider = m_T[0];
+    } else if (tag_matched_count == 1) {
+      provider = m_T[predictors_max_ghr_index + 1];
+    } else {
+      // count >= 2
+      provider = m_T[predictors_max_ghr_index + 1];
+      altpred = m_T[predictors_max_ghr_index2 + 1];
+    }
+    return provider->predict(addr);
   }
 
   void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {
@@ -523,7 +564,8 @@ int main(int argc, char *argv[]) {
   // BP = new BHTPredictor();
   // BP = new GlobalHistoryPredictor<HashMethods::slice>();
   // BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
-  BP = new TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>());
+  // BP = new TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>());
+  BP = new TAGEPredictor<HashMethods::hash_xor, HashMethods::slice>(5, 11, 8, 1.2, 10);
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
