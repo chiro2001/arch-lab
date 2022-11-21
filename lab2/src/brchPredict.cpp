@@ -530,7 +530,7 @@ public:
       }
     }
 
-    // TODO: Entry replacement
+    // Entry replacement
     vector<int> update_providers_rule1;
     vector<int> update_providers_rule2;
     if (predict_provider != branch_actually) {
@@ -564,11 +564,13 @@ public:
       auto p = (GlobalHistoryPredictor<hash1> *) m_T[i];
       p->reset_ctr(addr);
       memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
+      p->getEntryFromAddr(addr).tag = hash2(addr, p->get_ghr_instance()->getVal());
     }
     if (update_providers_rule2.empty() && !update_providers_rule1.empty()) {
       for (auto &i: update_providers_rule1) {
         auto p = (GlobalHistoryPredictor<hash1> *) m_T[i];
         m_useful[i][p->getTagFromAddr(addr)] = (m_useful[i][p->getTagFromAddr(addr)] - 1) & 0x3;
+        p->getEntryFromAddr(addr).tag = hash2(addr, p->get_ghr_instance()->getVal());
       }
     }
   }
