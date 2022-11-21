@@ -178,11 +178,14 @@ public:
     }
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "Simplify"
+
   void update(BOOL takenActually, BOOL takenPredicted, ADDRINT addr, ADDRINT target) override {
     // Update BHT according to branch results and prediction
     auto &line = getLineFromAddr(addr);
     if (predict_address && false) {
-      // is this logic ok..?
+      // is this logic ok...?
       if (!line.valid) {
         if (takenActually) {
           line.valid = true;
@@ -210,6 +213,8 @@ public:
       }
     }
   }
+
+#pragma clang diagnostic pop
 };
 
 class HashMethods {
@@ -295,17 +300,58 @@ public:
 class TournamentPredictor : public BranchPredictor {
   BranchPredictor *m_BPs[2];      // Sub-predictors
   SaturatingCnt *m_gshr;          // Global select-history register
+  bool predict_addr;
 
 public:
-  TournamentPredictor(BranchPredictor *BP0, BranchPredictor *BP1, size_t gshr_width = 2) {
-    // TODO
+  /**
+   * PBs will be managed by this class.
+   * @param BP0
+   * @param BP1
+   */
+  TournamentPredictor(BranchPredictor *BP0, BranchPredictor *BP1, bool predict_addr = true) {
+    size_t gshr_width = 2;
+    m_BPs[0] = BP0;
+    m_BPs[1] = BP1;
+    m_gshr = new SaturatingCnt(gshr_width);
+    this->predict_addr = predict_addr;
   }
 
   ~TournamentPredictor() {
-    // TODO
+    delete m_gshr;
+    delete m_BPs[0];
+    delete m_BPs[1];
   }
 
-  // TODO
+  ADDRINT predict(ADDRINT addr) override {
+    if (m_gshr->isTaken()) {
+      return m_BPs[1]->predict(addr);
+    } else {
+      return m_BPs[0]->predict(addr);
+    }
+  }
+
+  void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) override {
+    auto predict1 = m_BPs[0]->predict(addr);
+    auto predict2 = m_BPs[1]->predict(addr);
+    bool correct1, correct2;
+    if (!predict_addr) {
+      auto actually = takenActually ? 1 : 0;
+      correct1 = (predict1 ? 1 : 0) == actually;
+      correct2 = (predict2 ? 1 : 0) == actually;
+    } else {
+      correct1 = predict1 == target;
+      correct2 = predict2 == target;
+    }
+    if (correct1 != correct2) {
+      if (correct1) {
+        m_gshr->decrease();
+      } else {
+        m_gshr->increase();
+      }
+    }
+    m_BPs[0]->update(takenActually, takenPredicted, addr, target);
+    m_BPs[1]->update(takenActually, takenPredicted, addr, target);
+  }
 };
 
 /* ===================================================================== */
@@ -473,9 +519,10 @@ INT32 Usage() {
 int main(int argc, char *argv[]) {
   // BP = new BranchPredictor();
   // BP = new StaticPredictor();
-  BP = new BHTPredictor();
+  // BP = new BHTPredictor();
   // BP = new GlobalHistoryPredictor<HashMethods::slice>();
   // BP = new GlobalHistoryPredictor<HashMethods::hash_xor>();
+  BP = new TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>());
 
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
