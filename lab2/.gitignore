@@ -2,3 +2,5 @@ build/
 *-build-*/
 target/
 .idea/
+/*.log
+/brchPredict*.txt

@@ -21,7 +21,7 @@ ofstream OutFile;
 // 将val截断, 使其宽度变成bits
 #define truncate(val, bits) ((val) & ((1 << (bits)) - 1))
 
-const static int TEST_SIZE = 6;
+const static int TEST_SIZE = 7;
 
 class TestResult {
 public:
@@ -699,13 +699,18 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
 
-  OutFile.open(KnobOutputFile.Value().c_str());
+  auto filename = KnobOutputFile.Value();
+  if (argc >= 9) {
+    filename = string("brchPredict-") + argv[8] + ".txt";
+  }
+  OutFile.open(filename.c_str());
 
-  SET_TEST_PREDICTOR(0, StaticPredictor());
+  // SET_TEST_PREDICTOR(0, StaticPredictor());
   SET_TEST_PREDICTOR(1, BHTPredictor());
   SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
   SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
   SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+  SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
   SET_TEST_PREDICTOR(5, TAGEPredictor(5, 11, 8, 1.2, 10));
 
   // Register Instruction to be called to instrument instructions

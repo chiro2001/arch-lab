@@ -35,34 +35,11 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Include Intel PIN targets (this should use find_package but this is easier sometimes)
 include(cmake/IntelPin.cmake)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/corrosion)
-
-find_program(CXXBRIDGE cxxbridge PATHS "$ENV{HOME}/.cargo/bin/")
-if (CXXBRIDGE STREQUAL "CXXBRIDGE-NOTFOUND")
-    message("Could not find cxxbridge, trying to install with `cargo install cxxbridge-cmd'")
-    find_program(CARGO cargo PATHS "$ENV{HOME}/.cargo/bin/")
-    if (CARGO STREQUAL "CARGO-NOTFOUND")
-        message(FATAL_ERROR "Requires cargo available in path, install via rustup https://rustup.rs/")
-    endif ()
-    execute_process(COMMAND ${CARGO} install cxxbridge-cmd)
-    find_program(CXXBRIDGE cxxbridge PATHS "$ENV{HOME}/.cargo/bin/")
-endif ()
-
-# cxxbridge for rust
-corrosion_import_crate(MANIFEST_PATH src/rusty_code/Cargo.toml)
-corrosion_add_cxxbridge(rusty_bridge CRATE rusty_code MANIFEST_PATH rusty_code FILES lib.rs)
-target_link_options(rusty_bridge INTERFACE -Wl,--hash-style=sysv)
-
-include_directories(${CMAKE_SOURCE_DIR}/src/include)
-
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
 
 add_pintool_test(pin_test "ls" ${CMAKE_SOURCE_DIR}/src/pin_test.cpp)
 
 add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
-
-add_pintool_test(bp "ls" ${CMAKE_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(bp PRIVATE rusty_bridge)
 
 add_executable(simple_test ${CMAKE_SOURCE_DIR}/src/simple_test.cpp)
