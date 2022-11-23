@@ -682,8 +682,8 @@ VOID Fini(int, VOID *v) {
   }
   if (rank_best >= 0) {
     auto best = results[rank_best];
-    cout << "Best: " << best.name << " with precision " << precision_best << endl;
-    OutFile << "Best: " << best.name << " with precision " << precision_best << endl;
+    cout << "Best: result[" << rank_best << "] " << best.name << " with precision " << precision_best << endl;
+    OutFile << "Best: result[" << rank_best << "] " << best.name << " with precision " << precision_best << endl;
   }
   OutFile.close();
 }
@@ -723,18 +723,20 @@ int main(int argc, char *argv[]) {
   cerr << "Output filename: " << filename << endl;
 
   // SET_TEST_PREDICTOR(0, StaticPredictor());
-  // SET_TEST_PREDICTOR(1, BHTPredictor());
-  // SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
-  // SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
-  // SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  // SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  SET_TEST_PREDICTOR(0, TAGEPredictor(5, 11, 4, 1.2, 10));
-  SET_TEST_PREDICTOR(1, TAGEPredictor(3, 11, 4, 1.1, 10));
-  SET_TEST_PREDICTOR(2, TAGEPredictor(5, 11, 4, 1.1, 10));
-  SET_TEST_PREDICTOR(3, TAGEPredictor(5, 11, 8, 1.1, 10));
-  SET_TEST_PREDICTOR(4, TAGEPredictor(7, 11, 4, 1.1, 10));
-  SET_TEST_PREDICTOR(5, TAGEPredictor(5, 11, 4, 2, 10));
-  SET_TEST_PREDICTOR(6, TAGEPredictor(5, 11, 8, 2, 10));
+  SET_TEST_PREDICTOR(1, BHTPredictor());
+  SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
+  SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
+  SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+  SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  SET_TEST_PREDICTOR(6, TAGEPredictor(3, 11, 4, 1.1, 10));
+
+  // SET_TEST_PREDICTOR(0, TAGEPredictor(5, 11, 4, 1.2, 10));
+  // SET_TEST_PREDICTOR(1, TAGEPredictor(3, 11, 4, 1.1, 10));
+  // SET_TEST_PREDICTOR(2, TAGEPredictor(3, 11, 4, 1.5, 10));
+  // SET_TEST_PREDICTOR(3, TAGEPredictor(3, 11, 8, 1.1, 10));
+  // SET_TEST_PREDICTOR(4, TAGEPredictor(5, 11, 4, 1.1, 10));
+  // SET_TEST_PREDICTOR(5, TAGEPredictor(3, 11, 4, 1, 10));
+  // SET_TEST_PREDICTOR(6, TAGEPredictor(3, 11, 4, 2, 10));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
