@@ -463,7 +463,7 @@ public:
 
   ~TAGEPredictor() {
     for (size_t i = 0; i < m_tnum; i++) delete m_T[i];
-    for (size_t i = 0; i < m_tnum; i++) delete[] m_useful[i];
+    for (size_t i = 1; i < m_tnum; i++) delete[] m_useful[i];
 
     delete[] m_T;
     delete[] m_T_pred;
@@ -737,14 +737,13 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 10));
-
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.2, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.5, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 8, 1.1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 2, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.2, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 9));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.5, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 8, 1.1, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.1, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 2, 10));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
