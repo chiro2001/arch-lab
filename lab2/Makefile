@@ -8,4 +8,7 @@ build:
 $(tests): build
 	./build/_deps/intelpin-src/pin -t ./build/libbrchPredict.so -- runspec --size=test --noreportable --nobuild $@
 
-.PHONY: build all $(tests)
+coremark: build
+	./build/_deps/intelpin-src/pin -t ./build/libbrchPredict.so -- ../lab1/workspace/coremark.exe
+
+.PHONY: build all coremark $(tests)

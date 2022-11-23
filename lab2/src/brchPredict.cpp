@@ -594,19 +594,19 @@ void predictBranch(ADDRINT pc, BOOL direction, ADDRINT target) {
     ADDRINT prediction = P->predict(pc);
     P->update(direction, prediction, pc, target);
     if (prediction) {
-      if (direction)
+      if (direction) {
         r.takenCorrect++;
-      else
-        r.takenIncorrect++;
-      // == 1 means no prediction
-      if (prediction != 1) {
-        if (prediction == target) {
-          r.takenPcCorrect++;
-        } else {
-          r.takenPcIncorrect++;
-          // OutFile << "Incorrect predict:real = " << hex << (int) prediction << ":" << (int) target << endl;
+        // == 1 means no prediction
+        if (prediction != 1) {
+          if (prediction == target) {
+            r.takenPcCorrect++;
+          } else {
+            r.takenPcIncorrect++;
+            // OutFile << "Incorrect predict:real = " << hex << (int) prediction << ":" << (int) target << endl;
+          }
         }
-      }
+      } else
+        r.takenIncorrect++;
     } else {
       if (direction)
         r.notTakenIncorrect++;
@@ -699,11 +699,14 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
 
-  auto filename = KnobOutputFile.Value();
-  if (argc >= 9) {
-    filename = string("brchPredict-") + argv[8] + ".txt";
+  // auto filename = KnobOutputFile.Value();
+  auto last_arg = string(argv[argc - 1]);
+  if (last_arg.find('/') != string::npos) {
+    last_arg = last_arg.substr(last_arg.rfind('/') + 1);
   }
+  auto filename = string("brchPredict-") + last_arg + ".txt";
   OutFile.open(filename.c_str());
+  cerr << "Output filename: " << filename << endl;
 
   // SET_TEST_PREDICTOR(0, StaticPredictor());
   SET_TEST_PREDICTOR(1, BHTPredictor());
@@ -711,7 +714,7 @@ int main(int argc, char *argv[]) {
   SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
   SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
   SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  SET_TEST_PREDICTOR(5, TAGEPredictor(5, 11, 8, 1.2, 10));
+  // SET_TEST_PREDICTOR(6, TAGEPredictor(5, 11, 8, 1.2, 10));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
