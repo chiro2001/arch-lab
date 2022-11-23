@@ -512,7 +512,7 @@ public:
       provider_index = predictors_max_ghr_index + 1;
       altpred_index = predictors_max_ghr_index2 + 1;
     }
-    // OutFile << "provider: " << provider_index << ", altpred: " << altpred_index << endl;
+    // cerr << "provider: " << provider_index << ", altpred: " << altpred_index << endl;
     return m_T[provider_index]->predict(addr);
   }
 
@@ -533,7 +533,8 @@ public:
     m_rst_cnt++;
     if (m_rst_cnt == m_rst_period) {
       m_rst_cnt = 0;
-      for (int i = 0; i < m_tnum - 1; i++) {
+      // T0 has no useful field
+      for (int i = 1; i < m_tnum - 1; i++) {
         memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
       }
     }
@@ -714,7 +715,7 @@ int main(int argc, char *argv[]) {
   SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
   SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
   SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  // SET_TEST_PREDICTOR(6, TAGEPredictor(5, 11, 8, 1.2, 10));
+  SET_TEST_PREDICTOR(6, TAGEPredictor(5, 11, 8, 1.2, 10));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
