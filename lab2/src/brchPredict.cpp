@@ -22,7 +22,7 @@ ofstream OutFile;
 // 将val截断, 使其宽度变成bits
 #define truncate(val, bits) ((val) & ((1 << (bits)) - 1))
 
-const static int TEST_SIZE = 7;
+const static int TEST_SIZE_MAX = 32;
 
 class TestResult {
 public:
@@ -35,7 +35,7 @@ public:
   const char *name = "Unknown";
 };
 
-static TestResult results[TEST_SIZE];
+static vector<TestResult> results(TEST_SIZE_MAX);
 
 // 饱和计数器 (N < 64)
 class SaturatingCnt {
@@ -113,7 +113,7 @@ public:
   virtual uint64_t getTagFromAddr(ADDRINT addr) { return 0; };
 };
 
-BranchPredictor *BP[TEST_SIZE] = {0};
+BranchPredictor *BP[TEST_SIZE_MAX] = {0};
 
 
 /**
@@ -589,7 +589,7 @@ public:
 
 // This function is called every time a control-flow instruction is encountered
 void predictBranch(ADDRINT pc, BOOL direction, ADDRINT target) {
-  for (int i = 0; i < TEST_SIZE; i++) {
+  for (int i = 0; i < TEST_SIZE_MAX; i++) {
     auto P = BP[i];
     if (!P) continue;
     auto &r = results[i];
@@ -639,7 +639,7 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "brchPredict.tx
 VOID Fini(int, VOID *v) {
   int rank_best = -1;
   double precision_best = 0;
-  for (int i = 0; i < TEST_SIZE; i++) {
+  for (int i = 0; i < TEST_SIZE_MAX; i++) {
     if (!BP[i]) continue;
     auto r = results[i];
     double precision = 100 * double(r.takenCorrect + r.notTakenCorrect) /
@@ -704,9 +704,17 @@ INT32 Usage() {
 /*   argc, argv are the entire command entry: pin -t <toolname> -- ...    */
 /* ===================================================================== */
 
+static int test_tail = 0;
+
 #define SET_TEST_PREDICTOR(index, inst) do {   \
   BP[(index)] = (new inst);                    \
   results[(index)].name = #inst;               \
+} while (0)
+
+#define APPEND_TEST_PREDICTOR(inst) do {   \
+  BP[(test_tail)] = (new inst);            \
+  results[(test_tail)].name = #inst;       \
+  test_tail++;                             \
 } while (0)
 
 int main(int argc, char *argv[]) {
@@ -722,21 +730,21 @@ int main(int argc, char *argv[]) {
   OutFile.open(filename.c_str());
   cerr << "Output filename: " << filename << endl;
 
-  // SET_TEST_PREDICTOR(0, StaticPredictor());
-  SET_TEST_PREDICTOR(1, BHTPredictor());
-  SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
-  SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
-  SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  SET_TEST_PREDICTOR(6, TAGEPredictor(3, 11, 4, 1.1, 10));
+  // APPEND_TEST_PREDICTOR(StaticPredictor());
+  APPEND_TEST_PREDICTOR(BHTPredictor());
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>());
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 10));
 
-  // SET_TEST_PREDICTOR(0, TAGEPredictor(5, 11, 4, 1.2, 10));
-  // SET_TEST_PREDICTOR(1, TAGEPredictor(3, 11, 4, 1.1, 10));
-  // SET_TEST_PREDICTOR(2, TAGEPredictor(3, 11, 4, 1.5, 10));
-  // SET_TEST_PREDICTOR(3, TAGEPredictor(3, 11, 8, 1.1, 10));
-  // SET_TEST_PREDICTOR(4, TAGEPredictor(5, 11, 4, 1.1, 10));
-  // SET_TEST_PREDICTOR(5, TAGEPredictor(3, 11, 4, 1, 10));
-  // SET_TEST_PREDICTOR(6, TAGEPredictor(3, 11, 4, 2, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.2, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.5, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 8, 1.1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 2, 10));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
