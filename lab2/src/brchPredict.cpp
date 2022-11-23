@@ -5,6 +5,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include "pin.H"
 
 using namespace std;
@@ -291,7 +292,7 @@ public:
   // param:   ghr_width:      Width of GHR
   //          entry_num_log:  PHT表行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
-  // PHT.w = 2+64+1
+  // PHT.w = 2+64+1, tot = (2^11)*(67.0/8)+8 = 17152B < 33KiB
   GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 11, size_t scnt_width = 2,
                          bool predict_address = true)
           : BHTPredictor(entry_num_log, scnt_width, predict_address) {
@@ -453,7 +454,7 @@ public:
     size_t ghr_size = T1ghr_len;
     for (size_t i = 1; i < m_tnum; i++) {
       m_T[i] = new GlobalHistoryPredictor<hash1>(ghr_size, m_entries_log, scnt_width, false);
-      ghr_size = (size_t) ((double) ghr_size * alpha);
+      ghr_size = (size_t) (round((double) ghr_size * alpha));
 
       m_useful[i] = new UINT8[1 << m_entries_log];
       memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
@@ -636,6 +637,8 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "brchPredict.tx
 
 // This function is called when the application exits
 VOID Fini(int, VOID *v) {
+  int rank_best = -1;
+  double precision_best = 0;
   for (int i = 0; i < TEST_SIZE; i++) {
     if (!BP[i]) continue;
     auto r = results[i];
@@ -671,6 +674,16 @@ VOID Fini(int, VOID *v) {
               << endl;
 
     delete BP[i];
+
+    if (precision > precision_best) {
+      precision_best = precision;
+      rank_best = i;
+    }
+  }
+  if (rank_best >= 0) {
+    auto best = results[rank_best];
+    cout << "Best: " << best.name << " with precision " << precision_best << endl;
+    OutFile << "Best: " << best.name << " with precision " << precision_best << endl;
   }
   OutFile.close();
 }
@@ -710,12 +723,18 @@ int main(int argc, char *argv[]) {
   cerr << "Output filename: " << filename << endl;
 
   // SET_TEST_PREDICTOR(0, StaticPredictor());
-  SET_TEST_PREDICTOR(1, BHTPredictor());
-  SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
-  SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
-  SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  SET_TEST_PREDICTOR(6, TAGEPredictor(5, 11, 8, 1.2, 10));
+  // SET_TEST_PREDICTOR(1, BHTPredictor());
+  // SET_TEST_PREDICTOR(2, GlobalHistoryPredictor<HashMethods::hash_xor>());
+  // SET_TEST_PREDICTOR(3, GlobalHistoryPredictor<HashMethods::fold_xor>());
+  // SET_TEST_PREDICTOR(4, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+  // SET_TEST_PREDICTOR(5, TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  SET_TEST_PREDICTOR(0, TAGEPredictor(5, 11, 4, 1.2, 10));
+  SET_TEST_PREDICTOR(1, TAGEPredictor(3, 11, 4, 1.1, 10));
+  SET_TEST_PREDICTOR(2, TAGEPredictor(5, 11, 4, 1.1, 10));
+  SET_TEST_PREDICTOR(3, TAGEPredictor(5, 11, 8, 1.1, 10));
+  SET_TEST_PREDICTOR(4, TAGEPredictor(7, 11, 4, 1.1, 10));
+  SET_TEST_PREDICTOR(5, TAGEPredictor(5, 11, 4, 2, 10));
+  SET_TEST_PREDICTOR(6, TAGEPredictor(5, 11, 8, 2, 10));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
