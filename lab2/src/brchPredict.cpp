@@ -772,9 +772,20 @@ int main(int argc, char *argv[]) {
   //
   // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 10, 4, 1.5, 10));
 
-  APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.5, 9));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.5, 8));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 1, 1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 2, 1, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 3, 1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 5, 1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 6, 1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 8, 1, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 10, 1, 10));
+
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 9));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 8));
+
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 10, 4, 1.5, 10));
 #endif
 
   // check capacity
