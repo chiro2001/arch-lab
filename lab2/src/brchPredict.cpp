@@ -707,6 +707,11 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
 
+  // APPEND_TEST_PREDICTOR(StaticPredictor());
+#ifdef PREPARING
+  // APPEND_TEST_PREDICTOR(BHTPredictor());
+  cerr << "Prepare with no predicator loaded!" << endl;
+#else
   // auto filename = KnobOutputFile.Value();
   auto last_arg = string(argv[argc - 1]);
   if (last_arg.find('/') != string::npos) {
@@ -716,12 +721,12 @@ int main(int argc, char *argv[]) {
   OutFile.open(filename.c_str());
   cerr << "Output filename: " << filename << endl;
 
-  // APPEND_TEST_PREDICTOR(StaticPredictor());
   APPEND_TEST_PREDICTOR(BHTPredictor());
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>());
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 2, 1.4, 11));
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.2, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 9));
@@ -731,8 +736,8 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(7, 11, 4, 1.2, 9));
   APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 2, 1.4, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 2, 1.4, 11));
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.2, 11));
+#endif
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
