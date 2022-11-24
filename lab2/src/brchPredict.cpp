@@ -103,6 +103,8 @@ public:
   virtual void update(bool takenActually, bool takenPredicted, ADDRINT addr, ADDRINT target) {};
 
   virtual uint64_t getTagFromAddr(ADDRINT addr) { return 0; };
+
+  virtual UINT32 capacity() { return 0; };
 };
 
 BranchPredictor *BP[TEST_SIZE_MAX] = {0};
@@ -147,20 +149,28 @@ protected:
   size_t m_entries_log;
   vector<BHTEntry> entries;              // BHT
   bool predict_address;
+  size_t m_scnt_width;
 
 public:
   // Constructor
   // param:   entry_num_log:  BHT行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
   // max size 33 KiB, every entry (2+64) bit, tot = 66 bit
-  // 33 * 0x400 * 8 = 135168 > 66 * 2048 = 66 * 2^n, n = 11
-  explicit BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = true) {
+  // 33 * 0x400 * 8 = 270336 > 135168 = 66 * 2048 = 66 * 2^n, n = 11
+  explicit BHTPredictor(size_t entry_num_log = 11, size_t scnt_width = 2, bool predict_address = true) :
+          m_scnt_width(scnt_width) {
     m_entries_log = entry_num_log;
     this->predict_address = predict_address;
     // OutFile << this << " Init entries, entry_num_log = " << entry_num_log << endl;
     for (int i = 0; i < (1 << entry_num_log); i++) {
       entries.emplace_back(BHTEntry(scnt_width));
     }
+  }
+
+  UINT32 capacity() override {
+    if (predict_address) {
+      return ((sizeof(BHTEntry::target) + m_scnt_width) * (1 << m_entries_log));
+    } else return (m_scnt_width * (1 << m_entries_log));
   }
 
   // Destructor
@@ -283,7 +293,7 @@ public:
   // param:   ghr_width:      Width of GHR
   //          entry_num_log:  PHT表行数的对数
   //          scnt_width:     饱和计数器的位数, 默认值为2
-  // PHT.w = 2+64+1, tot = (2^11)*(67.0/8)+8 = 17152B < 33KiB
+  // PHT.w = 2+64+1, tot = (2^11)*(67.0/8)+8 = 17152B < 33KiB = 270336
   GlobalHistoryPredictor(size_t ghr_width = 8, size_t entry_num_log = 11, size_t scnt_width = 2,
                          bool predict_address = true)
           : BHTPredictor(entry_num_log, scnt_width, predict_address) {
@@ -354,6 +364,8 @@ public:
    * PBs will be managed by this class.
    * @param BP0
    * @param BP1
+   * <br/>
+   * width: 66, 67; size: 66*2^10+67*2^11=204800 < 270336
    */
   TournamentPredictor(BranchPredictor *BP0, BranchPredictor *BP1, bool predict_addr = true) {
     size_t gshr_width = 2;
@@ -361,6 +373,10 @@ public:
     m_BPs[1] = BP1;
     m_gshr = new SaturatingCnt(gshr_width);
     this->predict_addr = predict_addr;
+  }
+
+  UINT32 capacity() override {
+    return m_BPs[0]->capacity() + m_BPs[1]->capacity();
   }
 
   ~TournamentPredictor() {
@@ -415,6 +431,9 @@ class TAGEPredictor : public BranchPredictor {
   int provider_index = -1;        // Provider's index of m_T
   int altpred_index = -1;         // Alternate provider's index of m_T
   int useful_bits = 2;
+  int scnt_width;
+  int Tn_entry_num_log;
+  int T0_entry_num_log;
 
   const size_t m_rst_period;      // Reset period of usefulness
   size_t m_rst_cnt;               // Reset counter
@@ -429,10 +448,12 @@ public:
   //          Tn_entry_num_log:   各子预测器T[1 : m_tnum - 1]的PHT行数的对数
   //          scnt_width:         Width of saturating counter (3 by default)
   //          rst_period:         Reset period of usefulness
+  // width: 2, 70; size = 2 * (1<<T0_entry_num_log) + (64+useful_bits+scnt_width) * (1<<Tn_entry_num_log)
   TAGEPredictor(size_t tnum, size_t T0_entry_num_log, size_t T1ghr_len, float alpha, size_t Tn_entry_num_log,
                 size_t scnt_width = 3, size_t rst_period = 256 * 1024, int useful_bits = 2)
           : m_tnum(tnum), m_entries_log(Tn_entry_num_log), m_rst_period(rst_period), m_rst_cnt(0),
-            useful_bits(useful_bits) {
+            useful_bits(useful_bits), scnt_width(scnt_width), T0_entry_num_log(T0_entry_num_log),
+            Tn_entry_num_log(Tn_entry_num_log) {
     m_T = new BranchPredictor *[m_tnum];
     m_T_pred = new bool[m_tnum];
     m_useful = new UINT8 *[m_tnum];
@@ -448,6 +469,10 @@ public:
       m_useful[i] = new UINT8[1 << m_entries_log];
       memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
     }
+  }
+
+  UINT32 capacity() override {
+    return 2 * (1 << T0_entry_num_log) + (m_entries_log + useful_bits + scnt_width) * (1 << Tn_entry_num_log);
   }
 
   ~TAGEPredictor() {
@@ -724,9 +749,9 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(BHTPredictor());
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>());
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 2, 1.4, 11));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 2, 1.4, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.2, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 9));
@@ -736,8 +761,20 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(7, 11, 4, 1.2, 9));
   APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 2, 1.4, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.2, 11));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.2, 10));
 #endif
+
+  // check capacity
+  for (int i = 0; i < TEST_SIZE_MAX; i++) {
+    auto t = BP[i];
+    if (!t) continue;
+    if (t->capacity() > 33 * 0x400) {
+      OutFile << "predictor[" << i << "] " << results[i].name << " oversize! capacity = " << t->capacity() << ", "
+              << (double) ((1.0 * t->capacity()) / 0x400) << " KiB" << endl;
+      cerr << "predictor[" << i << "] " << results[i].name << " oversize! capacity = " << t->capacity() << ", "
+           << (double) ((1.0 * t->capacity()) / 0x400) << " KiB" << endl;
+    }
+  }
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
