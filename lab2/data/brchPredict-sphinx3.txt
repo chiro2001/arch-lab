@@ -1,112 +1,107 @@
 result[0] name: BHTPredictor()
-takenCorrect: 195629451
-takenIncorrect: 18477151
-notTakenCorrect: 323352755
-notTakenIncorrect: 20538113
-Precision: 93.008
-takenPcCorrect: 190521819
-takenPcIncorrect: 5106877
-PcPrecision: 97.3895
+capacity: 20 KiB
+takenCorrect: 194965665
+takenIncorrect: 18384440
+notTakenCorrect: 322069100
+notTakenIncorrect: 20430528
+Precision: 93.017
+takenPcCorrect: 189884879
+takenPcIncorrect: 5080031
+PcPrecision: 97.3944
 result[1] name: GlobalHistoryPredictor<HashMethods::hash_xor>()
-takenCorrect: 185998136
-takenIncorrect: 26770132
-notTakenCorrect: 315059774
-notTakenIncorrect: 30169428
-Precision: 89.7957
-takenPcCorrect: 168864944
-takenPcIncorrect: 17132395
-PcPrecision: 90.7889
+capacity: 20 KiB
+takenCorrect: 185391749
+takenIncorrect: 26602399
+notTakenCorrect: 313851141
+notTakenIncorrect: 30004444
+Precision: 89.8162
+takenPcCorrect: 168339832
+takenPcIncorrect: 17051119
+PcPrecision: 90.8026
 result[2] name: GlobalHistoryPredictor<HashMethods::fold_xor>()
-takenCorrect: 186109085
-takenIncorrect: 27279936
-notTakenCorrect: 314549970
-notTakenIncorrect: 30058479
-Precision: 89.7243
-takenPcCorrect: 169315209
-takenPcIncorrect: 16793095
-PcPrecision: 90.9767
-result[3] name: TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::hash_xor>())
-takenCorrect: 195202392
-takenIncorrect: 19217149
-notTakenCorrect: 322612757
-notTakenIncorrect: 20965172
-Precision: 92.7988
-takenPcCorrect: 189315778
-takenPcIncorrect: 5885851
-PcPrecision: 96.9847
-result[4] name: TournamentPredictor(new BHTPredictor(), new GlobalHistoryPredictor<HashMethods::fold_xor>())
-takenCorrect: 195505641
-takenIncorrect: 19104490
-notTakenCorrect: 322725416
-notTakenIncorrect: 20661923
-Precision: 92.8734
-takenPcCorrect: 189697282
-takenPcIncorrect: 5807588
-PcPrecision: 97.0294
-result[5] name: TAGEPredictor(3, 11, 2, 1.4, 11)
-takenCorrect: 205653122
-takenIncorrect: 12674788
-notTakenCorrect: 329155118
-notTakenIncorrect: 10514442
-Precision: 95.8442
-result[6] name: TAGEPredictor(3, 11, 4, 1.1, 10)
-takenCorrect: 203608355
-takenIncorrect: 15750720
-notTakenCorrect: 326079186
-notTakenIncorrect: 12559209
-Precision: 94.9265
-result[7] name: TAGEPredictor(5, 11, 4, 1.2, 10)
-takenCorrect: 199306494
-takenIncorrect: 20340641
-notTakenCorrect: 321489265
-notTakenIncorrect: 16861070
-Precision: 93.333
-result[8] name: TAGEPredictor(3, 11, 4, 1.1, 9)
-takenCorrect: 201530977
-takenIncorrect: 18232028
-notTakenCorrect: 323597878
-notTakenIncorrect: 14636587
-Precision: 94.1095
-result[9] name: TAGEPredictor(3, 11, 4, 1.5, 10)
-takenCorrect: 200500104
-takenIncorrect: 19203849
-notTakenCorrect: 322626057
-notTakenIncorrect: 15667460
-Precision: 93.7506
-result[10] name: TAGEPredictor(3, 11, 8, 1.1, 10)
-takenCorrect: 198016124
-takenIncorrect: 21505299
-notTakenCorrect: 320324607
-notTakenIncorrect: 18151440
-Precision: 92.893
-result[11] name: TAGEPredictor(5, 11, 4, 1.1, 10)
-takenCorrect: 203498268
-takenIncorrect: 15470307
-notTakenCorrect: 326359599
-notTakenIncorrect: 12669296
-Precision: 94.957
-result[12] name: TAGEPredictor(3, 11, 4, 1, 10)
-takenCorrect: 203608355
-takenIncorrect: 15750720
-notTakenCorrect: 326079186
-notTakenIncorrect: 12559209
-Precision: 94.9265
-result[13] name: TAGEPredictor(7, 11, 4, 1.2, 9)
-takenCorrect: 197667470
-takenIncorrect: 21999030
-notTakenCorrect: 319830876
-notTakenIncorrect: 18500094
-Precision: 92.7421
-result[14] name: TAGEPredictor(5, 11, 2, 1.4, 10)
-takenCorrect: 200577405
-takenIncorrect: 19075742
-notTakenCorrect: 322754164
-notTakenIncorrect: 15590159
-Precision: 93.7874
-result[15] name: TAGEPredictor(3, 11, 4, 1.2, 11)
-takenCorrect: 203838225
-takenIncorrect: 15786570
-notTakenCorrect: 326043336
-notTakenIncorrect: 12329339
-Precision: 94.9613
-Best: result[5] TAGEPredictor(3, 11, 2, 1.4, 11) with precision 95.8442
+capacity: 20 KiB
+takenCorrect: 185779201
+takenIncorrect: 26946613
+notTakenCorrect: 313506927
+notTakenIncorrect: 29616992
+Precision: 89.8239
+takenPcCorrect: 168420566
+takenPcIncorrect: 17357877
+PcPrecision: 90.6567
+result[3] name: TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::hash_xor>())
+capacity: 30 KiB
+takenCorrect: 189233732
+takenIncorrect: 23805439
+notTakenCorrect: 316648101
+notTakenIncorrect: 26162461
+Precision: 91.0105
+takenPcCorrect: 176529939
+takenPcIncorrect: 12703418
+PcPrecision: 93.2869
+result[4] name: TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>())
+capacity: 30 KiB
+takenCorrect: 189296746
+takenIncorrect: 23276263
+notTakenCorrect: 317177277
+notTakenIncorrect: 26099447
+Precision: 91.1171
+takenPcCorrect: 176036734
+takenPcIncorrect: 13259628
+PcPrecision: 92.9953
+result[5] name: TAGEPredictor(3, 13, 4, 1.5, 9)
+capacity: 30 KiB
+takenCorrect: 202882215
+takenIncorrect: 16855310
+notTakenCorrect: 323598230
+notTakenIncorrect: 12513978
+Precision: 94.7163
+result[6] name: TAGEPredictor(5, 13, 2, 1.4, 8)
+capacity: 29 KiB
+takenCorrect: 202609360
+takenIncorrect: 17027642
+notTakenCorrect: 323425898
+notTakenIncorrect: 12786833
+Precision: 94.6362
+result[7] name: TAGEPredictor(7, 13, 2, 1.4, 7)
+capacity: 25 KiB
+takenCorrect: 201135029
+takenIncorrect: 18559551
+notTakenCorrect: 321893989
+notTakenIncorrect: 14261164
+Precision: 94.0954
+result[8] name: TAGEPredictor(3, 13, 4, 1.5, 9)
+capacity: 30 KiB
+takenCorrect: 202882215
+takenIncorrect: 16855310
+notTakenCorrect: 323598230
+notTakenIncorrect: 12513978
+Precision: 94.7163
+result[9] name: TAGEPredictor(3, 13, 6, 1.5, 9)
+capacity: 30 KiB
+takenCorrect: 201428327
+takenIncorrect: 18355364
+notTakenCorrect: 322098176
+notTakenIncorrect: 13967866
+Precision: 94.1849
+result[10] name: TAGEPredictor(3, 13, 8, 1.5, 9)
+capacity: 30 KiB
+takenCorrect: 201207259
+takenIncorrect: 18614031
+notTakenCorrect: 321839509
+notTakenIncorrect: 14188934
+Precision: 94.0986
+result[11] name: TAGEPredictor(2, 13, 4, 1.5, 10)
+capacity: 31 KiB
+takenCorrect: 205468160
+takenIncorrect: 13234397
+notTakenCorrect: 327219143
+notTakenIncorrect: 9928033
+Precision: 95.833
+result[12] name: TAGEPredictor(3, 10, 4, 1.5, 10)
+capacity: 32 KiB
+takenCorrect: 194734912
+takenIncorrect: 23394461
+notTakenCorrect: 317059079
+notTakenIncorrect: 20661281
+Precision: 92.0742
+Best: result[11] TAGEPredictor(2, 13, 4, 1.5, 10) with precision 95.833
