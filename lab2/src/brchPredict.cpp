@@ -105,6 +105,8 @@ public:
   virtual uint64_t getTagFromAddr(ADDRINT addr) { return 0; };
 
   virtual UINT32 capacity() { return 0; };
+
+  double capacity_kib() { return ((double) capacity()) / 1024.0; };
 };
 
 BranchPredictor *BP[TEST_SIZE_MAX] = {0};
@@ -472,7 +474,8 @@ public:
   }
 
   UINT32 capacity() override {
-    return 2 * (1 << T0_entry_num_log) + (m_entries_log + useful_bits + scnt_width) * (1 << Tn_entry_num_log);
+    return 2 * (1 << T0_entry_num_log) +
+           ((m_entries_log + useful_bits + scnt_width) * (m_tnum ? (m_tnum - 1) : 0)) * (1 << Tn_entry_num_log);
   }
 
   ~TAGEPredictor() {
@@ -657,21 +660,23 @@ VOID Fini(int, VOID *v) {
                        ((double) r.takenCorrect + (double) r.notTakenCorrect + (double) r.takenIncorrect +
                         (double) r.notTakenIncorrect);
 
-    cout << "result[" << i << "] name: " << r.name << endl
-         << "takenCorrect: " << r.takenCorrect << endl
-         << "takenIncorrect: " << r.takenIncorrect << endl
-         << "notTakenCorrect: " << r.notTakenCorrect << endl
-         << "notTakenIncorrect: " << r.notTakenIncorrect << endl
-         << "Precision: " << precision << endl;
-    if (r.takenPcCorrect != 0 || r.takenPcIncorrect != 0)
-      cout << "takenPcCorrect: " << r.takenPcCorrect << endl
-           << "takenPcIncorrect: " << r.takenPcIncorrect << endl
-           << "PcPrecision: "
-           << (100.0 * (double) r.takenPcCorrect / ((double) r.takenPcCorrect + (double) r.takenPcIncorrect))
-           << endl;
+    // cout << "result[" << i << "] name: " << r.name << endl
+    //      << "capacity: " << BP[i]->capacity_kib() << " KiB" << endl
+    //      << "takenCorrect: " << r.takenCorrect << endl
+    //      << "takenIncorrect: " << r.takenIncorrect << endl
+    //      << "notTakenCorrect: " << r.notTakenCorrect << endl
+    //      << "notTakenIncorrect: " << r.notTakenIncorrect << endl
+    //      << "Precision: " << precision << endl;
+    // if (r.takenPcCorrect != 0 || r.takenPcIncorrect != 0)
+    //   cout << "takenPcCorrect: " << r.takenPcCorrect << endl
+    //        << "takenPcIncorrect: " << r.takenPcIncorrect << endl
+    //        << "PcPrecision: "
+    //        << (100.0 * (double) r.takenPcCorrect / ((double) r.takenPcCorrect + (double) r.takenPcIncorrect))
+    //        << endl;
 
     OutFile.setf(ios::showbase);
     OutFile << "result[" << i << "] name: " << r.name << endl
+            << "capacity: " << BP[i]->capacity_kib() << " KiB" << endl
             << "takenCorrect: " << r.takenCorrect << endl
             << "takenIncorrect: " << r.takenIncorrect << endl
             << "notTakenCorrect: " << r.notTakenCorrect << endl
@@ -751,29 +756,35 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 2, 1.4, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.2, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.1, 9));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.5, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 8, 1.1, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.1, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(7, 11, 4, 1.2, 9));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 2, 1.4, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.2, 10));
+
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 2, 1.4, 8));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(7, 13, 2, 1.4, 7));
+
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 6, 1.5, 9));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 8, 1.5, 9));
+
+  APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 10));
+
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 10, 4, 1.5, 10));
 #endif
 
   // check capacity
+  bool oversize = false;
   for (int i = 0; i < TEST_SIZE_MAX; i++) {
     auto t = BP[i];
     if (!t) continue;
     if (t->capacity() > 33 * 0x400) {
       OutFile << "predictor[" << i << "] " << results[i].name << " oversize! capacity = " << t->capacity() << ", "
-              << (double) ((1.0 * t->capacity()) / 0x400) << " KiB" << endl;
+              << t->capacity_kib() << " KiB" << endl;
       cerr << "predictor[" << i << "] " << results[i].name << " oversize! capacity = " << t->capacity() << ", "
-           << (double) ((1.0 * t->capacity()) / 0x400) << " KiB" << endl;
+           << t->capacity_kib() << " KiB" << endl;
+      oversize = true;
     }
+  }
+  if (oversize) {
+    exit(1);
   }
 
   // Register Instruction to be called to instrument instructions
