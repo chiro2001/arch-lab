@@ -86,14 +86,6 @@ public:
   }
 };
 
-// Hash functions
-inline UINT128 f_xor(UINT128 a, UINT128 b) { return a ^ b; }
-
-inline UINT128 f_xor1(UINT128 a, UINT128 b) { return ~a ^ ~b; }
-
-inline UINT128 f_xnor(UINT128 a, UINT128 b) { return ~(a ^ ~b); }
-
-
 // Base class of all predictors
 class BranchPredictor {
 public:
@@ -176,19 +168,11 @@ public:
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) override {
-    uint64_t r = truncate(addr >> 2, m_entries_log);
-    // OutFile << "entries.size() = " << entries.size() << ", tag = " << r << endl;
-    return r;
+    return truncate(addr >> 2, m_entries_log);
   }
 
   virtual BHTEntry &getEntryFromAddr(ADDRINT addr) {
-    // assert address is aligned to 4 bytes
-    auto index = getTagFromAddr(addr);
-    if (index >= entries.size()) {
-      OutFile << this << " Err: Out of vec index " << index << endl;
-      exit(1);
-    }
-    return entries[index];
+    return entries[getTagFromAddr(addr)];
   }
 
   ADDRINT predict(ADDRINT addr) override {
@@ -267,17 +251,24 @@ public:
    * @param history
    * @return hashed data
    */
-  static UINT128 slice(UINT128 addr, UINT128 history) {
+  inline static UINT128 slice(UINT128 addr, UINT128 history) {
     return addr >> 2;
   }
 
-  static UINT128 hash_xor(UINT128 addr, UINT128 history) {
+  inline static UINT128 hash_xor(UINT128 addr, UINT128 history) {
     return (addr >> 2) ^ history;
   }
 
-  static UINT128 fold_xor(UINT128 addr, UINT128 history) {
+  inline static UINT128 fold_xor(UINT128 addr, UINT128 history) {
     return fold(addr, 2, [](auto a, auto b) { return a ^ b; }) ^ history;
   }
+
+  // Hash functions
+  inline static UINT128 f_xor(UINT128 a, UINT128 b) { return a ^ b; }
+
+  inline static UINT128 f_xor1(UINT128 a, UINT128 b) { return ~a ^ ~b; }
+
+  inline static UINT128 f_xnor(UINT128 a, UINT128 b) { return ~(a ^ ~b); }
 };
 
 /* ===================================================================== */
@@ -304,9 +295,7 @@ public:
   }
 
   uint64_t getTagFromAddr(ADDRINT addr) override {
-    uint64_t r = truncate(hash(addr, m_ghr->getVal()), m_entries_log);
-    // OutFile << "entries.size() = " << entries.size() << ", tag = " << r << endl;
-    return r;
+    return truncate(hash(addr, m_ghr->getVal()), m_entries_log);
   }
 
   // Destructor
@@ -480,8 +469,6 @@ public:
   }
 
   ADDRINT predict(ADDRINT addr) override {
-    ADDRINT predictors_tags[tnum_max - 1];
-    bool tag_matched[tnum_max - 1];
     UINT128 predictors_max_ghr = 0;
     int predictors_max_ghr_index = -1;
     int predictors_max_ghr_index2 = -1;
@@ -490,10 +477,9 @@ public:
       if (i != 0) {
         auto ghp = ((GlobalHistoryPredictor<hash1> *) (m_T[i]));
         auto entry = ghp->getEntryFromAddr(addr);
-        predictors_tags[i - 1] = ghp->get_tag(addr);
         auto h2 = hash2(addr, ghp->get_ghr_instance()->getVal());
-        tag_matched[i - 1] = entry.tag == h2;
-        if (tag_matched[i - 1]) {
+        // Has tag matched
+        if (entry.tag == h2) {
           tag_matched_count++;
           if (predictors_max_ghr < ghp->get_ghr_instance()->getMWid()) {
             predictors_max_ghr_index2 = predictors_max_ghr_index;
@@ -521,9 +507,9 @@ public:
     auto predict_provider = m_T[provider_index]->predict(addr) != 0;
     auto predict_altpred = m_T[altpred_index]->predict(addr) != 0;
     auto provider_entry_index = m_T[provider_index]->getTagFromAddr(addr);
+    auto branch_actually = (takenActually ? 1 : 0);
     // Update provider itself
     m_T[provider_index]->update(takenActually, takenPredicted, addr, target);
-    auto branch_actually = (takenActually ? 1 : 0);
 
     // Update usefulness
     if (provider_index != 0 && predict_altpred != predict_provider) {
@@ -743,7 +729,10 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 8, 1.1, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.1, 10));
   APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 2, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(7, 11, 4, 1.2, 9));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 2, 1.4, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 2, 1.4, 11));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.2, 11));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
