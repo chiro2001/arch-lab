@@ -594,7 +594,7 @@ public:
       for (auto &i: predicator_a) {
         auto p = (GlobalHistoryPredictor<hash1> *) m_T[i];
         update_useful_entry(i, p->getTagFromAddr(addr), false);
-        p->getEntryFromAddr(addr).tag = hash2(addr, p->get_ghr_instance()->getVal());
+        // p->getEntryFromAddr(addr).tag = hash2(addr, p->get_ghr_instance()->getVal());
       }
     }
   }
@@ -751,23 +751,30 @@ int main(int argc, char *argv[]) {
   OutFile.open(filename.c_str());
   cerr << "Output filename: " << filename << endl;
 
-  APPEND_TEST_PREDICTOR(BHTPredictor());
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>());
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  bool allow_oversize = true;
+  // bool allow_oversize = false;
 
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 2, 1.4, 8));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(7, 13, 2, 1.4, 7));
-
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 6, 1.5, 9));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 8, 1.5, 9));
+  // APPEND_TEST_PREDICTOR(BHTPredictor());
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>());
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
+  // APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
+  // APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  //
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 2, 1.4, 8));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(7, 13, 2, 1.4, 7));
+  //
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 6, 1.5, 9));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 8, 1.5, 9));
+  //
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 10));
+  //
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 10, 4, 1.5, 10));
 
   APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 10));
-
-  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 10, 4, 1.5, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 11, 4, 1.5, 9));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 11, 4, 1.5, 8));
 #endif
 
   // check capacity
@@ -783,7 +790,7 @@ int main(int argc, char *argv[]) {
       oversize = true;
     }
   }
-  if (oversize) {
+  if (oversize && !allow_oversize) {
     exit(1);
   }
 
