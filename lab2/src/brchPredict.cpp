@@ -754,11 +754,11 @@ int main(int argc, char *argv[]) {
   bool allow_oversize = true;
   // bool allow_oversize = false;
 
-  // APPEND_TEST_PREDICTOR(BHTPredictor());
+  APPEND_TEST_PREDICTOR(BHTPredictor());
   // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>());
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
   // APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  // APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
   //
   // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
   // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 2, 1.4, 8));
