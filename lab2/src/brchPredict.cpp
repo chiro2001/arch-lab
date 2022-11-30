@@ -104,6 +104,10 @@ public:
 
   virtual uint64_t getTagFromAddr(ADDRINT addr) { return 0; };
 
+  /**
+   * capacity usage **IN BYTES**
+   * @return
+   */
   virtual UINT32 capacity() { return 0; };
 
   double capacity_kib() { return ((double) capacity()) / 1024.0; };
@@ -171,8 +175,8 @@ public:
 
   UINT32 capacity() override {
     if (predict_address) {
-      return ((sizeof(BHTEntry::target) + m_scnt_width) * (1 << m_entries_log));
-    } else return (m_scnt_width * (1 << m_entries_log));
+      return ((sizeof(BHTEntry::target) + m_scnt_width) * (1 << m_entries_log)) / 8;
+    } else return (m_scnt_width * (1 << m_entries_log)) / 8;
   }
 
   // Destructor
@@ -264,11 +268,11 @@ public:
    * @return hashed data
    */
   inline static UINT128 slice(UINT128 addr, UINT128 history) {
-    return addr >> 2;
+    return addr;
   }
 
   inline static UINT128 hash_xor(UINT128 addr, UINT128 history) {
-    return (addr >> 2) ^ history;
+    return addr ^ history;
   }
 
   inline static UINT128 fold_xor(UINT128 addr, UINT128 history) {
@@ -474,8 +478,8 @@ public:
   }
 
   UINT32 capacity() override {
-    return 2 * (1 << T0_entry_num_log) +
-           ((m_entries_log + useful_bits + scnt_width) * (m_tnum ? (m_tnum - 1) : 0)) * (1 << Tn_entry_num_log);
+    return ((2 * (1 << T0_entry_num_log)) +
+            ((m_entries_log + useful_bits + scnt_width) * (m_tnum ? (m_tnum - 1) : 0)) * (1 << Tn_entry_num_log)) / 8;
   }
 
   ~TAGEPredictor() {
@@ -754,38 +758,24 @@ int main(int argc, char *argv[]) {
   bool allow_oversize = true;
   // bool allow_oversize = false;
 
-  APPEND_TEST_PREDICTOR(BHTPredictor());
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>());
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>());
-  // APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::hash_xor>()));
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(10), new GlobalHistoryPredictor<HashMethods::fold_xor>()));
-  //
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 2, 1.4, 8));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(7, 13, 2, 1.4, 7));
-  //
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 6, 1.5, 9));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 8, 1.5, 9));
-  //
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 10));
-  //
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 10, 4, 1.5, 10));
+  APPEND_TEST_PREDICTOR(BHTPredictor(14));
+  APPEND_TEST_PREDICTOR(BHTPredictor(17, 2, false));
+  APPEND_TEST_PREDICTOR(BHTPredictor(16, 3, false));
+  APPEND_TEST_PREDICTOR(BHTPredictor(16, 4, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 14));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 14));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 14));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 14));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(16, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(16, 17, 2, false));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(13), new GlobalHistoryPredictor<HashMethods::fold_xor>(8, 13)));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(16, 2, false), new GlobalHistoryPredictor<HashMethods::fold_xor>(8, 16, 2, false)));
 
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 1, 1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 2, 1, 10));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 3, 1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 5, 1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 6, 1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 8, 1, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 10, 1, 10));
-
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 9));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(2, 13, 4, 1.5, 8));
-
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 13, 4, 1.5, 9));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 10, 4, 1.5, 10));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 4, 2, 11));
 #endif
 
   // check capacity
