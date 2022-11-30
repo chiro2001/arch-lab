@@ -762,18 +762,22 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(BHTPredictor(17, 2, false));
   APPEND_TEST_PREDICTOR(BHTPredictor(16, 3, false));
   APPEND_TEST_PREDICTOR(BHTPredictor(16, 4, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 14));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 14));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 14));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 14));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(16, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(16, 17, 2, false));
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(13), new GlobalHistoryPredictor<HashMethods::fold_xor>(8, 13)));
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(16, 2, false), new GlobalHistoryPredictor<HashMethods::fold_xor>(8, 16, 2, false)));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 14));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 14));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 14));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 14));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(16, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(16, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(20, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(24, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(32, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(64, 17, 2, false));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(13), new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 13)));
+  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(16, 2, false), new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 16, 2, false)));
 
   APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 4, 2, 11));
 #endif

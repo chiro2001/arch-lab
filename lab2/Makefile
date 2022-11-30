@@ -3,8 +3,10 @@ tests := bzip2 sjeng wrf sphinx3
 all: $(tests)
 
 build:
-	cmake -B build -S .
 	cmake --build build
+
+configure:
+	cmake -B build -S . -G Ninja
 
 build-prepare:
 	cmake -B build -S . -DCMAKE_CXX_FLAGS="-DPREPARING=1"

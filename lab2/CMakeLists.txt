@@ -35,6 +35,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Include Intel PIN targets (this should use find_package but this is easier sometimes)
 include(cmake/IntelPin.cmake)
 
+add_compile_options(-O3)
+
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
 
