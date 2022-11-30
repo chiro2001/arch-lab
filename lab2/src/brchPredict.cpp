@@ -260,6 +260,17 @@ private:
     return r;
   }
 
+  template<typename F>
+  static UINT128 fold_bits(UINT128 h, int m, F const &f) {
+    UINT128 r = 0;
+    for (int i = 0; i < 128; i += m) {
+      auto s = ((1 << m) - 1) & h;
+      r |= f(r, s) << i;
+      h >>= m;
+    }
+    return r;
+  }
+
 public:
   /**
    * Simply slice address to make hash, assert 4 bytes align
@@ -275,8 +286,9 @@ public:
     return addr ^ history;
   }
 
+  template<int bits = 16>
   inline static UINT128 fold_xor(UINT128 addr, UINT128 history) {
-    return fold(addr, 2, [](auto a, auto b) { return a ^ b; }) ^ history;
+    return fold_bits(addr, bits, [](auto a, auto b) { return a ^ b; }) ^ history;
   }
 
   // Hash functions
@@ -773,26 +785,28 @@ int main(int argc, char *argv[]) {
   bool allow_oversize = true;
   // bool allow_oversize = false;
 
-  APPEND_TEST_PREDICTOR(BHTPredictor(14));
-  APPEND_TEST_PREDICTOR(BHTPredictor(17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(20, 17, 2, false));
-  APPEND_TEST_PREDICTOR(
-          TournamentPredictor(new BHTPredictor(13), new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 13)));
-  APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(16, 2, false),
-                                            new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 16, 2, false)));
+  // APPEND_TEST_PREDICTOR(BHTPredictor(14));
+  // APPEND_TEST_PREDICTOR(BHTPredictor(17, 2, false));
+  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(20, 17, 2, false));
+  // APPEND_TEST_PREDICTOR(
+  //         TournamentPredictor(new BHTPredictor(13), new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 13)));
+  // APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(16, 2, false),
+  //                                           new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 16, 2, false)));
 
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(7, 16, 4, 1.2, 10));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 4, 1.2, 11));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 16, 18, 1.2, 12));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 16, 10, 2, 12));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<8>>(8, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<10>>(10, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<12>>(12, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<14>>(14, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<16>>(16, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(18, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(20, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(22, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(24, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(26, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(28, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(30, 17, 2, false));
 
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 8, 1.5, 11));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 16, 1.2, 11));
-  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 18, 1.2, 12));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 24, 1.2, 11));
-
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 16, 16, 1.5, 12));
-  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 8, 1.8, 11));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 18, 1.2, 12));
 #endif
 
   // check capacity
