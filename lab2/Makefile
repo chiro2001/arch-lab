@@ -1,6 +1,7 @@
 tests := bzip2 sjeng wrf sphinx3
+extra_tests := coremark
 
-all: $(tests)
+all: $(tests) $(extra_tests)
 
 build:
 	cmake --build build

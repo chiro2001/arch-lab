@@ -411,12 +411,11 @@ public:
       correct1 = predict1 == target;
       correct2 = predict2 == target;
     }
-    if (correct1 != correct2) {
-      if (correct1) {
-        m_gshr->decrease();
-      } else {
-        m_gshr->increase();
-      }
+    if (correct1 && !correct2) {
+      m_gshr->decrease();
+    }
+    if (!correct1 && correct2) {
+      m_gshr->increase();
     }
     m_BPs[0]->update(takenActually, takenPredicted, addr, target);
     m_BPs[1]->update(takenActually, takenPredicted, addr, target);
@@ -465,7 +464,6 @@ public:
     m_useful = new UINT8 *[m_tnum];
 
     m_T[0] = new BHTPredictor(T0_entry_num_log, 2, false);
-    // m_T[0] = new StaticPredictor();
 
     size_t ghr_size = T1ghr_len;
     for (size_t i = 1; i < m_tnum; i++) {
@@ -592,7 +590,7 @@ public:
       auto i = *predicator_b.begin();
       auto p = (GlobalHistoryPredictor<hash1> *) m_T[i];
       p->reset_ctr(addr);
-      memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
+      // memset(m_useful[i], 0, sizeof(UINT8) * (1 << m_entries_log));
       p->getEntryFromAddr(addr).tag = hash2(addr, p->get_ghr_instance()->getVal());
     } else {
       for (auto &i: predicator_a) {
@@ -760,26 +758,22 @@ int main(int argc, char *argv[]) {
 
   APPEND_TEST_PREDICTOR(BHTPredictor(14));
   APPEND_TEST_PREDICTOR(BHTPredictor(17, 2, false));
-  APPEND_TEST_PREDICTOR(BHTPredictor(16, 3, false));
-  APPEND_TEST_PREDICTOR(BHTPredictor(16, 4, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 14));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 14));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 14));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 14));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(4, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(8, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::hash_xor>(16, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(4, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(8, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(16, 17, 2, false));
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(20, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(24, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(32, 17, 2, false));
-  // APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor>(64, 17, 2, false));
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(13), new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 13)));
   APPEND_TEST_PREDICTOR(TournamentPredictor(new BHTPredictor(16, 2, false), new GlobalHistoryPredictor<HashMethods::fold_xor>(20, 16, 2, false)));
 
-  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 4, 2, 11));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(7, 16, 4, 1.2, 10));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 4, 1.2, 11));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 16, 18, 1.2, 12));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(3, 16, 10, 2, 12));
+
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 8, 1.5, 11));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 16, 1.2, 11));
+  APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 20, 1.2, 11));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 24, 1.2, 11));
+
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(3, 16, 16, 1.5, 12));
+  // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 16, 8, 1.8, 11));
 #endif
 
   // check capacity
