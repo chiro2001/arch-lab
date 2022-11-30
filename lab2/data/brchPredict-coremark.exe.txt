@@ -1,0 +1,42 @@
+result[0] name: BHTPredictor(14)
+capacity: 20 KiB
+takenCorrect: 98223204
+takenIncorrect: 8703422
+notTakenCorrect: 59962387
+notTakenIncorrect: 5767023
+Precision: 91.6189
+takenPcCorrect: 98222782
+takenPcIncorrect: 7
+PcPrecision: 100
+result[1] name: BHTPredictor(17, 2, false)
+capacity: 32 KiB
+takenCorrect: 98223220
+takenIncorrect: 8703427
+notTakenCorrect: 59962382
+notTakenIncorrect: 5767007
+Precision: 91.6189
+result[2] name: GlobalHistoryPredictor<HashMethods::fold_xor<20>>(20, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602049
+takenIncorrect: 2969963
+notTakenCorrect: 65695846
+notTakenIncorrect: 3388178
+Precision: 96.3175
+result[3] name: TournamentPredictor(new BHTPredictor(13), new GlobalHistoryPredictor<HashMethods::fold_xor<20>>(20, 13))
+capacity: 20 KiB
+takenCorrect: 99285374
+takenIncorrect: 8629500
+notTakenCorrect: 60036309
+notTakenIncorrect: 4704853
+Precision: 92.2769
+takenPcCorrect: 99177330
+takenPcIncorrect: 107579
+PcPrecision: 99.8916
+result[4] name: TournamentPredictor(new BHTPredictor(16, 2, false), new GlobalHistoryPredictor<HashMethods::fold_xor<20>>(20, 16, 2, false))
+capacity: 32 KiB
+takenCorrect: 100113827
+takenIncorrect: 3207512
+notTakenCorrect: 65458297
+notTakenIncorrect: 3876400
+Precision: 95.8971
+Best: result[2] GlobalHistoryPredictor<HashMethods::fold_xor<20>>(20, 17, 2, false) with precision 96.3175
