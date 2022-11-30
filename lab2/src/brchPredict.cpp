@@ -265,7 +265,7 @@ private:
     UINT128 r = 0;
     for (int i = 0; i < 128; i += m) {
       auto s = ((1 << m) - 1) & h;
-      r |= f(r, s) << i;
+      r = f(r, s);
       h >>= m;
     }
     return r;
@@ -798,13 +798,13 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<12>>(12, 17, 2, false));
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<14>>(14, 17, 2, false));
   APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<16>>(16, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(18, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(20, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(22, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(24, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(26, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(28, 17, 2, false));
-  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<17>>(30, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<18>>(18, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<20>>(20, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<22>>(22, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<24>>(24, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<26>>(26, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<28>>(28, 17, 2, false));
+  APPEND_TEST_PREDICTOR(GlobalHistoryPredictor<HashMethods::fold_xor<30>>(30, 17, 2, false));
 
   // APPEND_TEST_PREDICTOR(TAGEPredictor(5, 13, 18, 1.2, 12));
 #endif

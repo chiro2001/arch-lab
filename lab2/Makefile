@@ -25,6 +25,9 @@ prepare: $(foreach t,$(tests),prepare-$(t))
 coremark: build
 	./build/_deps/intelpin-src/pin -t ./build/libbrchPredict.so -- ../lab1/workspace/coremark.exe
 
+stats:
+	python scripts/draw.py
+
 clean:
 	-rm -rf build brchPredict*.txt
 
