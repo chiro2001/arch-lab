@@ -1,0 +1,85 @@
+result[0] name: GlobalHistoryPredictor<HashMethods::fold_xor<8>>(8, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 95389264
+takenIncorrect: 7475388
+notTakenCorrect: 61190385
+notTakenIncorrect: 8600937
+Precision: 90.6888
+result[1] name: GlobalHistoryPredictor<HashMethods::fold_xor<10>>(10, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 98168865
+takenIncorrect: 6509226
+notTakenCorrect: 62156547
+notTakenIncorrect: 5821336
+Precision: 92.8583
+result[2] name: GlobalHistoryPredictor<HashMethods::fold_xor<12>>(12, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 99222708
+takenIncorrect: 4933122
+notTakenCorrect: 63732651
+notTakenIncorrect: 4767493
+Precision: 94.3815
+result[3] name: GlobalHistoryPredictor<HashMethods::fold_xor<14>>(14, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 99859364
+takenIncorrect: 4105403
+notTakenCorrect: 64560370
+notTakenIncorrect: 4130837
+Precision: 95.2297
+result[4] name: GlobalHistoryPredictor<HashMethods::fold_xor<16>>(16, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100113795
+takenIncorrect: 3279471
+notTakenCorrect: 65386302
+notTakenIncorrect: 3876406
+Precision: 95.8554
+result[5] name: GlobalHistoryPredictor<HashMethods::fold_xor<18>>(18, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602023
+takenIncorrect: 2969923
+notTakenCorrect: 65695850
+notTakenIncorrect: 3388178
+Precision: 96.3175
+result[6] name: GlobalHistoryPredictor<HashMethods::fold_xor<20>>(20, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602025
+takenIncorrect: 2969922
+notTakenCorrect: 65695851
+notTakenIncorrect: 3388176
+Precision: 96.3175
+result[7] name: GlobalHistoryPredictor<HashMethods::fold_xor<22>>(22, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602024
+takenIncorrect: 2969923
+notTakenCorrect: 65695850
+notTakenIncorrect: 3388177
+Precision: 96.3175
+result[8] name: GlobalHistoryPredictor<HashMethods::fold_xor<24>>(24, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602025
+takenIncorrect: 2969923
+notTakenCorrect: 65695850
+notTakenIncorrect: 3388176
+Precision: 96.3175
+result[9] name: GlobalHistoryPredictor<HashMethods::fold_xor<26>>(26, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602024
+takenIncorrect: 2969923
+notTakenCorrect: 65695850
+notTakenIncorrect: 3388177
+Precision: 96.3175
+result[10] name: GlobalHistoryPredictor<HashMethods::fold_xor<28>>(28, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602025
+takenIncorrect: 2969923
+notTakenCorrect: 65695850
+notTakenIncorrect: 3388176
+Precision: 96.3175
+result[11] name: GlobalHistoryPredictor<HashMethods::fold_xor<30>>(30, 17, 2, false)
+capacity: 32 KiB
+takenCorrect: 100602025
+takenIncorrect: 2969923
+notTakenCorrect: 65695850
+notTakenIncorrect: 3388176
+Precision: 96.3175
+Best: result[6] GlobalHistoryPredictor<HashMethods::fold_xor<20>>(20, 17, 2, false) with precision 96.3175
