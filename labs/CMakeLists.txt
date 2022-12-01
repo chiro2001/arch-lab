@@ -37,6 +37,8 @@ include(cmake/IntelPin.cmake)
 
 add_compile_options(-O3)
 
+CPMAddPackage("gh:chiro2001/debug-macros@0.1")
+
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)
 
