@@ -203,7 +203,7 @@ private:
 class SetAssoCache : public CacheModel {
 public:
   UINT32 m_sets_log;
-  // log2(len(sets[i]))
+  // total asso sets
   UINT32 m_asso;
   vector<LinearCache> sets;
 
@@ -211,8 +211,10 @@ public:
   SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso) :
           m_sets_log(sets_log), m_asso(asso),
           CacheModel(asso, log_block_size) {
-    for (auto i = 0; i < m_sets_log; i++) {
-      sets.emplace_back(LinearCache(1 << asso, log_block_size));
+    Dbg("SetAssoCache(%u, %u, %u)", sets_log, log_block_size, asso);
+    for (auto i = 0; i < m_asso; i++) {
+      Dbg("creating set %d", i);
+      sets.emplace_back(LinearCache(1 << m_sets_log, log_block_size));
     }
   }
 
@@ -333,6 +335,7 @@ VOID Fini(INT32 code, VOID *v) {
   output.setf(ios::showbase);
   for (auto &model: models) {
     model->statistics(output);
+    delete model;
   }
 }
 
@@ -341,13 +344,22 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   PIN_Init(argc, argv);
 
+  Log("Cache Model Test Program");
+
   models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
+  Dbg("init done: FullAssoCache");
 
   models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  Dbg("init done: SetAssoCache");
 
   models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  Dbg("init done: SetAssoCache_VIVT");
   models.emplace_back(new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  Dbg("init done: SetAssoCache_PIPT");
   models.emplace_back(new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  Dbg("init done: SetAssoCache_VIPT");
+
+  Dbg("models init done");
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
