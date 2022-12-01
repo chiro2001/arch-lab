@@ -68,13 +68,13 @@ public:
     if (access(mem_addr)) m_wr_hits++;
   }
 
-  UINT32 getRdReq() { return m_rd_reqs; }
+  [[nodiscard]] UINT32 getRdReq() const { return m_rd_reqs; }
 
-  UINT32 getWrReq() { return m_wr_reqs; }
+  [[nodiscard]] UINT32 getWrReq() const { return m_wr_reqs; }
 
-  void dumpResults() {
-    float rdHitRate = 100 * (float) m_rd_hits / m_rd_reqs;
-    float wrHitRate = 100 * (float) m_wr_hits / m_wr_reqs;
+  void dumpResults() const {
+    float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
+    float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
     printf("\tread req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
     printf("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
   }
@@ -118,7 +118,7 @@ private:
   UINT32 getTag(UINT32 addr) { /* TODO */ }
 
   // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) {
+  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
     UINT32 tag = getTag(mem_addr);
 
     // TODO
@@ -127,7 +127,7 @@ private:
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) {
+  bool access(UINT32 mem_addr) override {
     UINT32 blk_id;
     if (lookup(mem_addr, blk_id)) {
       updateReplaceQ(blk_id);     // Update m_replace_q
@@ -135,17 +135,17 @@ private:
     }
 
     // Get the to-be-replaced block id using m_replace_q
-    UINT32 bid_2be_replaced = // TODO
+    UINT32 bid_2be_replaced = 0;// TODO
 
-            // Replace the cache block
-            // TODO
-            updateReplaceQ(bid_2be_replaced);
+    // Replace the cache block
+    // TODO
+    updateReplaceQ(bid_2be_replaced);
 
     return false;
   }
 
   // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) {
+  void updateReplaceQ(UINT32 blk_id) override {
     // TODO
   }
 };
@@ -166,17 +166,18 @@ private:
   //
 
   // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) {
+  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
     // TODO
+    return false;
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) {
+  bool access(UINT32 mem_addr) override {
     // TODO
   }
 
   // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) {
+  void updateReplaceQ(UINT32 blk_id) override {
     // TODO
   }
 };
@@ -197,17 +198,18 @@ private:
   // Add your members
 
   // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) {
+  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
     // TODO
+    return false;
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) {
+  bool access(UINT32 mem_addr) override {
     // TODO
   }
 
   // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) {
+  void updateReplaceQ(UINT32 blk_id) override {
     // TODO
   }
 };
@@ -228,17 +230,18 @@ private:
   // Add your members
 
   // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) {
+  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
     // TODO
+    return false;
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) {
+  bool access(UINT32 mem_addr) override {
     // TODO
   }
 
   // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) {
+  void updateReplaceQ(UINT32 blk_id) override {
     // TODO
   }
 };
@@ -259,49 +262,51 @@ private:
   // Add your members
 
   // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) {
+  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
     // TODO
+    return false;
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) {
+  bool access(UINT32 mem_addr) override {
     // TODO
+    return false;
   }
 
   // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) {
+  void updateReplaceQ(UINT32 blk_id) override {
     // TODO
   }
 };
 
-CacheModel *my_fa_cache;
-CacheModel *my_sa_cache;
-CacheModel *my_sa_cache_vivt;
-CacheModel *my_sa_cache_pipt;
-CacheModel *my_sa_cache_vipt;
+CacheModel *my_fa_cache = nullptr;
+CacheModel *my_sa_cache = nullptr;
+CacheModel *my_sa_cache_vivt = nullptr;
+CacheModel *my_sa_cache_pipt = nullptr;
+CacheModel *my_sa_cache_vipt = nullptr;
 
 // Cache reading analysis routine
 void readCache(UINT32 mem_addr) {
   mem_addr = (mem_addr >> 2) << 2;
 
-  my_fa_cache->readReq(mem_addr);
-  my_sa_cache->readReq(mem_addr);
+  if (my_fa_cache) my_fa_cache->readReq(mem_addr);
+  if (my_sa_cache) my_sa_cache->readReq(mem_addr);
 
-  my_sa_cache_vivt->readReq(mem_addr);
-  my_sa_cache_pipt->readReq(mem_addr);
-  my_sa_cache_vipt->readReq(mem_addr);
+  if (my_sa_cache_vivt) my_sa_cache_vivt->readReq(mem_addr);
+  if (my_sa_cache_pipt) my_sa_cache_pipt->readReq(mem_addr);
+  if (my_sa_cache_vipt) my_sa_cache_vipt->readReq(mem_addr);
 }
 
 // Cache writing analysis routine
 void writeCache(UINT32 mem_addr) {
   mem_addr = (mem_addr >> 2) << 2;
 
-  my_fa_cache->writeReq(mem_addr);
-  my_sa_cache->writeReq(mem_addr);
+  if (my_fa_cache) my_fa_cache->writeReq(mem_addr);
+  if (my_sa_cache) my_sa_cache->writeReq(mem_addr);
 
-  my_sa_cache_vivt->writeReq(mem_addr);
-  my_sa_cache_pipt->writeReq(mem_addr);
-  my_sa_cache_vipt->writeReq(mem_addr);
+  if (my_sa_cache_vivt) my_sa_cache_vivt->writeReq(mem_addr);
+  if (my_sa_cache_pipt) my_sa_cache_pipt->writeReq(mem_addr);
+  if (my_sa_cache_vipt) my_sa_cache_vipt->writeReq(mem_addr);
 }
 
 // This knob will set the cache param m_block_num
@@ -330,20 +335,30 @@ VOID Instruction(INS ins, VOID *v) {
 
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
-  printf("\nFully Associative Cache:\n");
-  my_fa_cache->dumpResults();
+  if (my_fa_cache) {
+    printf("\nFully Associative Cache:\n");
+    my_fa_cache->dumpResults();
+  }
 
-  printf("\nSet-Associative Cache:\n");
-  my_sa_cache->dumpResults();
+  if (my_sa_cache) {
+    printf("\nSet-Associative Cache:\n");
+    my_sa_cache->dumpResults();
+  }
 
-  printf("\nSet-Associative Cache (VIVT):\n");
-  my_sa_cache_vivt->dumpResults();
+  if (my_sa_cache_vivt) {
+    printf("\nSet-Associative Cache (VIVT):\n");
+    my_sa_cache_vivt->dumpResults();
+  }
 
-  printf("\nSet-Associative Cache (PIPT):\n");
-  my_sa_cache_pipt->dumpResults();
+  if (my_sa_cache_pipt) {
+    printf("\nSet-Associative Cache (PIPT):\n");
+    my_sa_cache_pipt->dumpResults();
+  }
 
-  printf("\nSet-Associative Cache (VIPT):\n");
-  my_sa_cache_vipt->dumpResults();
+  if (my_sa_cache_vipt) {
+    printf("\nSet-Associative Cache (VIPT):\n");
+    my_sa_cache_vipt->dumpResults();
+  }
 
   delete my_fa_cache;
   delete my_sa_cache;
@@ -360,16 +375,16 @@ int main(int argc, char *argv[]) {
 
   my_fa_cache = new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value());
   my_sa_cache = new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-
-  my_sa_cache_vivt = new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-  my_sa_cache_pipt = new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-  my_sa_cache_vipt = new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+  //
+  // my_sa_cache_vivt = new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+  // my_sa_cache_pipt = new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+  // my_sa_cache_vipt = new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
 
   // Register Instruction to be called to instrument instructions
-  INS_AddInstrumentFunction(Instruction, 0);
+  INS_AddInstrumentFunction(Instruction, nullptr);
 
   // Register Fini to be called when the application exits
-  PIN_AddFiniFunction(Fini, 0);
+  PIN_AddFiniFunction(Fini, nullptr);
 
   // Start the program, never returns
   PIN_StartProgram();
