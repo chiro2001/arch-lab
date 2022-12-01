@@ -4,7 +4,7 @@
 #include <ctime>
 #include <vector>
 #include <string>
-#include "common.h"
+#include "debug_macros.h"
 #include "pin.H"
 
 using namespace std;

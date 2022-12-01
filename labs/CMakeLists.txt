@@ -39,7 +39,7 @@ add_compile_options(-O3)
 
 CPMAddPackage(
         NAME debug_macros
-        VERSION 0.3
+        VERSION 0.5
         GITHUB_REPOSITORY chiro2001/debug-macros)
 
 link_libraries(debug_macros)
