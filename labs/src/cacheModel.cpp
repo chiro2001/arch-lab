@@ -62,12 +62,14 @@ public:
   // Update the cache state whenever data is read
   void readReq(UINT32 mem_addr) {
     m_rd_reqs++;
+    // Dbg("R [%6lu] %08x", m_rd_reqs, mem_addr);
     if (access(mem_addr)) m_rd_hits++;
   }
 
   // Update the cache state whenever data is written
   void writeReq(UINT32 mem_addr) {
     m_wr_reqs++;
+    Dbg("W [%6lu] %08x", m_wr_reqs, mem_addr);
     if (access(mem_addr)) m_wr_hits++;
   }
 
@@ -291,7 +293,6 @@ vector<CacheModel *> models;
 // Cache reading analysis routine
 void readCache(UINT32 mem_addr) {
   mem_addr = (mem_addr >> 2) << 2;
-
   for (auto &model: models) {
     model->readReq(mem_addr);
   }
@@ -352,14 +353,14 @@ int main(int argc, char *argv[]) {
   models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   Dbg("init done: SetAssoCache");
 
-  models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  Dbg("init done: SetAssoCache_VIVT");
-  models.emplace_back(new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  Dbg("init done: SetAssoCache_PIPT");
-  models.emplace_back(new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  Dbg("init done: SetAssoCache_VIPT");
+  // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  // Dbg("init done: SetAssoCache_VIVT");
+  // models.emplace_back(new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  // Dbg("init done: SetAssoCache_PIPT");
+  // models.emplace_back(new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  // Dbg("init done: SetAssoCache_VIPT");
 
-  Dbg("models init done");
+  Dbg("%lu models init done", models.size());
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);

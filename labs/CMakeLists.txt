@@ -52,7 +52,7 @@ add_pintool_test(pin_test "ls" ${CMAKE_SOURCE_DIR}/src/pin_test.cpp)
 
 add_pintool_test(brchPredict "ls" ${CMAKE_SOURCE_DIR}/src/brchPredict.cpp)
 
-add_pintool_test(cacheModel "ls" ${CMAKE_SOURCE_DIR}/src/cacheModel.cpp)
+add_pintool_test(cacheModel "pwd" ${CMAKE_SOURCE_DIR}/src/cacheModel.cpp)
 
 add_test(NAME brchPredict-coremark
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
