@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cmath>
 #include <ctime>
+#include <vector>
 #include "pin.H"
 
 typedef unsigned int UINT32;
@@ -30,31 +31,26 @@ UINT32 get_phy_addr(UINT32 virtual_addr) {
   return (get_phy_page_no(get_vir_page_no(virtual_addr)) << PAGE_SIZE_LOG) + get_page_offset(virtual_addr);
 }
 
-/**************************************
+/**
  * Cache Model Base Class
-**************************************/
+ */
 class CacheModel {
+protected:
+  UINT32 m_block_num;     // The number of cache blocks
+  UINT32 m_blksz_log;     // 块大小的对数
+
+  UINT64 m_rd_reqs;       // The number of read-requests
+  UINT64 m_wr_reqs;       // The number of write-requests
+  UINT64 m_rd_hits;       // The number of hit read-requests
+  UINT64 m_wr_hits;       // The number of hit write-requests
 public:
   // Constructor
   CacheModel(UINT32 block_num, UINT32 log_block_size)
           : m_block_num(block_num), m_blksz_log(log_block_size),
             m_rd_reqs(0), m_wr_reqs(0), m_rd_hits(0), m_wr_hits(0) {
-    m_valids = new bool[m_block_num];
-    m_tags = new UINT32[m_block_num];
-    m_replace_q = new UINT32[m_block_num];
-
-    for (UINT i = 0; i < m_block_num; i++) {
-      m_valids[i] = false;
-      m_replace_q[i] = i;
-    }
   }
 
-  // Destructor
-  virtual ~CacheModel() {
-    delete[] m_valids;
-    delete[] m_tags;
-    delete[] m_replace_q;
-  }
+  virtual ~CacheModel() = default;
 
   // Update the cache state whenever data is read
   void readReq(UINT32 mem_addr) {
@@ -75,23 +71,11 @@ public:
   void dumpResults() const {
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
-    printf("\tread req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
+    printf("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
     printf("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
   }
 
 protected:
-  UINT32 m_block_num;     // The number of cache blocks
-  UINT32 m_blksz_log;     // 块大小的对数
-
-  bool *m_valids;
-  UINT32 *m_tags;
-  UINT32 *m_replace_q;    // Cache块替换的候选队列
-
-  UINT64 m_rd_reqs;       // The number of read-requests
-  UINT64 m_wr_reqs;       // The number of write-requests
-  UINT64 m_rd_hits;       // The number of hit read-requests
-  UINT64 m_wr_hits;       // The number of hit write-requests
-
   // Look up the cache to decide whether the access is hit or missed
   virtual bool lookup(UINT32 mem_addr, UINT32 &blk_id) = 0;
 
@@ -102,27 +86,73 @@ protected:
   virtual void updateReplaceQ(UINT32 blk_id) = 0;
 };
 
-/**************************************
+/**
+ * Basic cache data storage
+ */
+class LinearCache : public CacheModel {
+public:
+  bool *m_valids;
+  UINT32 *m_tags;
+  std::vector<UINT32> m_replace_q;    // Cache块替换的候选队列
+  LinearCache(UINT32 block_num, UINT32 log_block_size) : CacheModel(block_num, log_block_size) {
+    m_valids = new bool[m_block_num];
+    m_tags = new UINT32[m_block_num];
+
+    for (UINT i = 0; i < m_block_num; i++) {
+      m_valids[i] = false;
+      m_replace_q.emplace_back(i);
+    }
+  }
+
+  virtual ~LinearCache() {
+    delete[] m_valids;
+    delete[] m_tags;
+  }
+
+  UINT32 getTag(UINT32 addr) {
+    return (addr >> m_blksz_log) & ((1 << m_block_num) - 1);
+  }
+
+protected:
+
+  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
+    return m_valids[getTag(mem_addr)];
+  }
+
+  bool access(UINT32 mem_addr) override {
+    return false;
+  }
+
+  void updateReplaceQ(UINT32 blk_id) override {
+    // do nothing
+  }
+};
+
+using DirectMappingCache = LinearCache;
+
+/**
  * Fully Associative Cache Class
-**************************************/
+ */
 class FullAssoCache : public CacheModel {
 public:
+  LinearCache inner;
+
   // Constructor
   FullAssoCache(UINT32 block_num, UINT32 log_block_size)
-          : CacheModel(block_num, log_block_size) {}
-
-  // Destructor
-  ~FullAssoCache() {}
+          : inner(LinearCache(block_num, log_block_size)),
+            CacheModel(block_num, log_block_size) {
+  }
 
 private:
-  UINT32 getTag(UINT32 addr) { /* TODO */ }
-
   // Look up the cache to decide whether the access is hit or missed
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    UINT32 tag = getTag(mem_addr);
-
-    // TODO
-
+    UINT32 tag = inner.getTag(mem_addr);
+    for (int i = 0; i < m_block_num; i++) {
+      if (inner.m_valids[i] && inner.m_tags[i] == tag) {
+        blk_id = i;
+        return true;
+      }
+    }
     return false;
   }
 
@@ -135,9 +165,9 @@ private:
     }
 
     // Get the to-be-replaced block id using m_replace_q
-    UINT32 bid_2be_replaced = 0;// TODO
+    UINT32 bid_2be_replaced = inner.m_replace_q[0];
 
-    // Replace the cache block
+    // Replace the cache block..?
     // TODO
     updateReplaceQ(bid_2be_replaced);
 
@@ -146,34 +176,65 @@ private:
 
   // Update m_replace_q
   void updateReplaceQ(UINT32 blk_id) override {
-    // TODO
+    // insert to head, and shift other indexes
+    auto index = std::find(inner.m_replace_q.begin(), inner.m_replace_q.end(), blk_id);
+    if (index == inner.m_replace_q.end()) {
+      printf("cannot find block %d!!", blk_id);
+    }
+    inner.m_replace_q.erase(index);
+    inner.m_replace_q.insert(inner.m_replace_q.begin(), blk_id);
   }
 };
 
-/**************************************
+/**
  * Set-Associative Cache Class
-**************************************/
+ */
 class SetAssoCache : public CacheModel {
 public:
-  // Constructor
-  SetAssoCache(/* TODO */) {}
+  UINT32 m_sets_log;
+  // log2(len(sets[i]))
+  UINT32 m_asso;
+  std::vector<LinearCache> sets;
 
-  // Destructor
-  ~SetAssoCache() {}
+  // Constructor
+  SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso) :
+          m_sets_log(sets_log), m_asso(asso),
+          CacheModel(asso, log_block_size) {
+    for (auto i = 0; i < m_sets_log; i++) {
+      sets.emplace_back(LinearCache(1 << asso, log_block_size));
+    }
+  }
+
+protected:
+
+  // addr: [ tag | group index | set index | block offset ]
+
+  UINT32 getTag(UINT32 addr) {
+    return addr >> (m_blksz_log + m_asso + m_sets_log);
+  }
+
+  UINT32 getGroupIndex(UINT32 addr) {
+    return (addr >> (m_blksz_log + m_asso)) & ((1 << m_sets_log) - 1);
+  }
+
+  UINT32 getSetIndex(UINT32 addr) {
+    return (addr >> m_blksz_log) & ((1 << m_asso) - 1);
+  }
 
 private:
-
-  //
-
   // Look up the cache to decide whether the access is hit or missed
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    // TODO
-    return false;
+    auto tag = getTag(mem_addr);
+    auto index_group = getGroupIndex(mem_addr);
+    auto index_set = getSetIndex(mem_addr);
+    auto &set = sets[index_group];
+    return set.m_valids[index_set] && set.m_tags[index_set];
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
   bool access(UINT32 mem_addr) override {
     // TODO
+    return false;
   }
 
   // Update m_replace_q
@@ -182,101 +243,34 @@ private:
   }
 };
 
-/**************************************
+/**
  * Set-Associative Cache Class (VIVT)
-**************************************/
-class SetAssoCache_VIVT : public CacheModel {
+ */
+class SetAssoCache_VIVT : public SetAssoCache {
 public:
-  // Constructor
-  SetAssoCache_VIVT(/* TODO */) {}
-
-  // Destructor
-  ~SetAssoCache_VIVT() {}
+  SetAssoCache_VIVT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso) {}
 
 private:
-
-  // Add your members
-
-  // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    // TODO
-    return false;
-  }
-
-  // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) override {
-    // TODO
-  }
-
-  // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) override {
-    // TODO
-  }
 };
 
-/**************************************
+/**
  * Set-Associative Cache Class (PIPT)
-**************************************/
-class SetAssoCache_PIPT : public CacheModel {
+ */
+class SetAssoCache_PIPT : public SetAssoCache {
 public:
-  // Constructor
-  SetAssoCache_PIPT(/* TODO */) {}
-
-  // Destructor
-  ~SetAssoCache_PIPT() {}
+  SetAssoCache_PIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso) {}
 
 private:
-
-  // Add your members
-
-  // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    // TODO
-    return false;
-  }
-
-  // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) override {
-    // TODO
-  }
-
-  // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) override {
-    // TODO
-  }
 };
 
-/**************************************
+/**
  * Set-Associative Cache Class (VIPT)
-**************************************/
-class SetAssoCache_VIPT : public CacheModel {
+ */
+class SetAssoCache_VIPT : public SetAssoCache {
 public:
-  // Constructor
-  SetAssoCache_VIPT(/* TODO */) {}
-
-  // Destructor
-  ~SetAssoCache_VIPT() {}
+  SetAssoCache_VIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso) {}
 
 private:
-
-  // Add your members
-
-  // Look up the cache to decide whether the access is hit or missed
-  bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    // TODO
-    return false;
-  }
-
-  // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
-  bool access(UINT32 mem_addr) override {
-    // TODO
-    return false;
-  }
-
-  // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) override {
-    // TODO
-  }
 };
 
 CacheModel *my_fa_cache = nullptr;
@@ -375,10 +369,10 @@ int main(int argc, char *argv[]) {
 
   my_fa_cache = new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value());
   my_sa_cache = new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-  //
-  // my_sa_cache_vivt = new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-  // my_sa_cache_pipt = new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-  // my_sa_cache_vipt = new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+
+  my_sa_cache_vivt = new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+  my_sa_cache_pipt = new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+  my_sa_cache_vipt = new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
