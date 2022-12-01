@@ -1,8 +1,12 @@
 #include <cstdio>
 #include <cmath>
+#include <fstream>
 #include <ctime>
 #include <vector>
+#include <string>
 #include "pin.H"
+
+using namespace std;
 
 typedef unsigned int UINT32;
 typedef unsigned long int UINT64;
@@ -43,6 +47,8 @@ protected:
   UINT64 m_wr_reqs;       // The number of write-requests
   UINT64 m_rd_hits;       // The number of hit read-requests
   UINT64 m_wr_hits;       // The number of hit write-requests
+
+  string name = "Basic model";
 public:
   // Constructor
   CacheModel(UINT32 block_num, UINT32 log_block_size)
@@ -75,6 +81,10 @@ public:
     printf("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
   }
 
+  void statistics(ofstream &file) {
+    file << "Ok";
+  }
+
 protected:
   // Look up the cache to decide whether the access is hit or missed
   virtual bool lookup(UINT32 mem_addr, UINT32 &blk_id) = 0;
@@ -93,7 +103,7 @@ class LinearCache : public CacheModel {
 public:
   bool *m_valids;
   UINT32 *m_tags;
-  std::vector<UINT32> m_replace_q;    // Cache块替换的候选队列
+  vector<UINT32> m_replace_q;    // Cache块替换的候选队列
   LinearCache(UINT32 block_num, UINT32 log_block_size) : CacheModel(block_num, log_block_size) {
     m_valids = new bool[m_block_num];
     m_tags = new UINT32[m_block_num];
@@ -104,7 +114,7 @@ public:
     }
   }
 
-  virtual ~LinearCache() {
+  ~LinearCache() override {
     delete[] m_valids;
     delete[] m_tags;
   }
@@ -177,7 +187,7 @@ private:
   // Update m_replace_q
   void updateReplaceQ(UINT32 blk_id) override {
     // insert to head, and shift other indexes
-    auto index = std::find(inner.m_replace_q.begin(), inner.m_replace_q.end(), blk_id);
+    auto index = find(inner.m_replace_q.begin(), inner.m_replace_q.end(), blk_id);
     if (index == inner.m_replace_q.end()) {
       printf("cannot find block %d!!", blk_id);
     }
@@ -194,7 +204,7 @@ public:
   UINT32 m_sets_log;
   // log2(len(sets[i]))
   UINT32 m_asso;
-  std::vector<LinearCache> sets;
+  vector<LinearCache> sets;
 
   // Constructor
   SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso) :
@@ -273,34 +283,23 @@ public:
 private:
 };
 
-CacheModel *my_fa_cache = nullptr;
-CacheModel *my_sa_cache = nullptr;
-CacheModel *my_sa_cache_vivt = nullptr;
-CacheModel *my_sa_cache_pipt = nullptr;
-CacheModel *my_sa_cache_vipt = nullptr;
+vector<CacheModel *> models;
 
 // Cache reading analysis routine
 void readCache(UINT32 mem_addr) {
   mem_addr = (mem_addr >> 2) << 2;
 
-  if (my_fa_cache) my_fa_cache->readReq(mem_addr);
-  if (my_sa_cache) my_sa_cache->readReq(mem_addr);
-
-  if (my_sa_cache_vivt) my_sa_cache_vivt->readReq(mem_addr);
-  if (my_sa_cache_pipt) my_sa_cache_pipt->readReq(mem_addr);
-  if (my_sa_cache_vipt) my_sa_cache_vipt->readReq(mem_addr);
+  for (auto &model: models) {
+    model->readReq(mem_addr);
+  }
 }
 
 // Cache writing analysis routine
 void writeCache(UINT32 mem_addr) {
   mem_addr = (mem_addr >> 2) << 2;
-
-  if (my_fa_cache) my_fa_cache->writeReq(mem_addr);
-  if (my_sa_cache) my_sa_cache->writeReq(mem_addr);
-
-  if (my_sa_cache_vivt) my_sa_cache_vivt->writeReq(mem_addr);
-  if (my_sa_cache_pipt) my_sa_cache_pipt->writeReq(mem_addr);
-  if (my_sa_cache_vipt) my_sa_cache_vipt->writeReq(mem_addr);
+  for (auto &model: models) {
+    model->writeReq(mem_addr);
+  }
 }
 
 // This knob will set the cache param m_block_num
@@ -329,37 +328,11 @@ VOID Instruction(INS ins, VOID *v) {
 
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
-  if (my_fa_cache) {
-    printf("\nFully Associative Cache:\n");
-    my_fa_cache->dumpResults();
+  ofstream output;
+  output.setf(ios::showbase);
+  for (auto &model: models) {
+    model->statistics(output);
   }
-
-  if (my_sa_cache) {
-    printf("\nSet-Associative Cache:\n");
-    my_sa_cache->dumpResults();
-  }
-
-  if (my_sa_cache_vivt) {
-    printf("\nSet-Associative Cache (VIVT):\n");
-    my_sa_cache_vivt->dumpResults();
-  }
-
-  if (my_sa_cache_pipt) {
-    printf("\nSet-Associative Cache (PIPT):\n");
-    my_sa_cache_pipt->dumpResults();
-  }
-
-  if (my_sa_cache_vipt) {
-    printf("\nSet-Associative Cache (VIPT):\n");
-    my_sa_cache_vipt->dumpResults();
-  }
-
-  delete my_fa_cache;
-  delete my_sa_cache;
-
-  delete my_sa_cache_vivt;
-  delete my_sa_cache_pipt;
-  delete my_sa_cache_vipt;
 }
 
 // argc, argv are the entire command line, including pin -t <toolname> -- ...
@@ -367,12 +340,13 @@ int main(int argc, char *argv[]) {
   // Initialize pin
   PIN_Init(argc, argv);
 
-  my_fa_cache = new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value());
-  my_sa_cache = new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+  models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
 
-  my_sa_cache_vivt = new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-  my_sa_cache_pipt = new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
-  my_sa_cache_vipt = new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value());
+  models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+
+  models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  models.emplace_back(new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  models.emplace_back(new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
 
   // Register Instruction to be called to instrument instructions
   INS_AddInstrumentFunction(Instruction, nullptr);
