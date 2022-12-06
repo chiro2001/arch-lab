@@ -124,13 +124,19 @@ public:
   }
 
   UINT32 getTag(UINT32 addr) {
-    return (addr >> m_blksz_log) & (m_block_num - 1);
+    return addr >> m_blksz_log;
+  }
+
+  UINT32 getIndex(UINT32 addr) {
+    return getTag(addr) & (m_block_num - 1);
   }
 
 protected:
 
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    return m_valids[getTag(mem_addr)];
+    auto tag = getTag(mem_addr);
+    auto index = getIndex(mem_addr);
+    return m_valids[index] && m_tags[index] == tag;
   }
 
   bool access(UINT32 mem_addr) override {
@@ -138,7 +144,10 @@ protected:
     if (lookup(mem_addr, blk_id)) {
       return true;
     }
-    m_valids[getTag(mem_addr)] = true;
+    auto tag = getTag(mem_addr);
+    auto index = getIndex(mem_addr);
+    m_valids[index] = true;
+    m_tags[index] = tag;
     return false;
   }
 
