@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(branch_predication CXX)
+project(arch-labs CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_CXX_STANDARD 17)
