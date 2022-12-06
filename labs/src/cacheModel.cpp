@@ -109,9 +109,9 @@ public:
   bool *m_valids;
   UINT32 *m_tags;
   vector<UINT32> m_replace_q;    // Cache块替换的候选队列
-  LinearCache(UINT32 block_num, UINT32 log_block_size) :
-      CacheModel(block_num, log_block_size, "DirectMappingCache") {
-    Dbg("LinearCache(0x%x, %d)", block_num, log_block_size);
+  LinearCache(UINT32 block_num, UINT32 log_block_size, string name = "DirectMappingCache") :
+      CacheModel(block_num, log_block_size, std::move(name)) {
+    Dbg("%s(0x%x, %d)", this->name.c_str(), block_num, log_block_size);
     m_valids = new bool[m_block_num];
     m_tags = new UINT32[m_block_num];
 
@@ -238,10 +238,11 @@ public:
       CacheModel(asso, log_block_size, std::move(name)) {
     Dbg("SetAssoCache(%u, %u, %u)", sets_log, log_block_size, asso);
     for (auto i = 0; i < m_asso; i++) {
-      Dbg("creating set %d", i);
-      sets.emplace_back(new LinearCache(1 << m_sets_log, log_block_size));
+      // Dbg("creating set %d", i);
+      sets.emplace_back(
+          new LinearCache(1 << m_sets_log, log_block_size, string("SetAssoCache-Set-") + std::to_string(i)));
     }
-    Dbg("init done");
+    // Dbg("init done");
   }
 
 protected:
