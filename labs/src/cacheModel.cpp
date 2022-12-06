@@ -66,7 +66,40 @@ public:
 };
 
 class ReplaceAlgo {
-  
+protected:
+  size_t total;
+public:
+  explicit ReplaceAlgo(size_t total) : total(total) {}
+
+  virtual ~ReplaceAlgo() {}
+
+  virtual size_t select(bool update) = 0;
+};
+
+class LRURepl : public ReplaceAlgo {
+  LinkedLRU lru;
+public:
+  explicit LRURepl(size_t total) :
+      lru(total),
+      ReplaceAlgo(total) {}
+
+  size_t select(bool update) override {
+    if (update) {
+      auto f = lru.front();
+      lru.update(f);
+      return f;
+    } else
+      return lru.front();
+  }
+};
+
+class RandomRepl : public ReplaceAlgo {
+public:
+  explicit RandomRepl(size_t total) : ReplaceAlgo(total) {}
+
+  size_t select(bool update) override {
+    return rand() % total;
+  }
 };
 
 /**
@@ -266,10 +299,12 @@ public:
   // total asso sets
   UINT32 m_asso;
   vector<LinearCache *> sets;
+  ReplaceAlgo **replace;
 
   // Constructor
   SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso, string name = "SetAssoCache") :
       m_sets_log(sets_log), m_asso(asso),
+      replace(nullptr),
       CacheModel(asso, log_block_size, std::move(name)) {
     Dbg("SetAssoCache(%u, %u, %u)", sets_log, log_block_size, asso);
     for (auto i = 0; i < m_asso; i++) {
@@ -284,12 +319,22 @@ public:
     for (auto set: sets) {
       delete set;
     }
+    for (int i = 0; i < 1 << m_sets_log; i++)
+      delete replace[i];
+    delete replace;
   }
 
   size_t capacity() override {
     size_t s = 0;
     for (auto &set: sets) s += set->capacity();
     return s;
+  }
+
+  template<typename F>
+  void setReplace(F const &f) {
+    if (!this->replace) this->replace = new ReplaceAlgo *[1 << m_sets_log];
+    for (int i = 0; i < 1 << m_sets_log; i++)
+      this->replace[i] = f(m_asso);
   }
 
 protected:
@@ -338,7 +383,7 @@ private:
       empty_set->m_valids[index_set] = true;
     } else {
       // kick out one block
-      auto select = rand() % m_asso;
+      auto select = replace ? replace[index_set]->select(true) : (rand() % m_asso);
       auto set = sets[select];
       set->m_tags[index_set] = tag;
       set->m_valids[index_set] = true;
@@ -439,6 +484,15 @@ INT32 Usage() {
   _p->setName(#inst);                  \
 } while (0)
 
+#define APPEND_TEST_MODEL_REPLACE(inst, replace) do { \
+  auto _p = (new inst);                               \
+  models.emplace_back(_p);                            \
+  _p->setName(#inst "-" #replace);                    \
+  _p->setReplace([](auto i) {                         \
+      return new replace(i);                          \
+    });                                               \
+  } while (0)
+
 FILE *log_fp = nullptr;
 
 // argc, argv are the entire command line, including pin -t <toolname> -- ...
@@ -454,7 +508,8 @@ int main(int argc, char *argv[]) {
 
   APPEND_TEST_MODEL(DirectMappingCache(512, 6));
   APPEND_TEST_MODEL(FullAssoCache(512, 6));
-  APPEND_TEST_MODEL(SetAssoCache(9, 6, 4));
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(9, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(9, 6, 4), LRURepl);
 
   // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   // Dbg("init done: SetAssoCache_VIVT");
