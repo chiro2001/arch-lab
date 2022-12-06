@@ -44,7 +44,8 @@ CPMAddPackage(
 
 link_libraries(debug_macros)
 target_compile_definitions(debug_macros INTERFACE
-        -DCONFIG_DEBUG=1 -DCONFIG_FILE_LOG=1
+        # -DCONFIG_DEBUG=1
+        -DCONFIG_FILE_LOG=1
         -DCONFIG_LOG_COLOR_DISABLED=1)
 
 # Instruction counter example

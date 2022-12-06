@@ -497,7 +497,7 @@ VOID Fini(INT32 code, VOID *v) {
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
   for (auto &r: results) {
-    log_write("%32s : %.8f%% : %5.2f KiB\n", r.first.c_str(), 1 - r.second.first, (float) r.second.second / 8 / 0x400);
+    log_write("%32s : %.8f%% : %5.2f KiB\n", r.first.c_str(), 100 - r.second.first, (float) r.second.second / 8 / 0x400);
   }
 }
 
