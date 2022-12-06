@@ -102,7 +102,44 @@ public:
       l++;
     }
     if (l > 0) l--;
-    return l;
+    return l * total;
+  }
+};
+
+class PLRURepl : public ReplaceAlgo {
+  int *bits;
+public:
+  explicit PLRURepl(size_t total) :
+      ReplaceAlgo(total) {
+    Assert(total > 0, "Not zero");
+    bits = new int[total - 1];
+    memset(bits, 0, sizeof(int) * (total - 1));
+  }
+
+  size_t select(bool update) override {
+    Assert(update, "Must update when select me");
+    size_t n = 0;
+    while (n < (total >> 1) - 1) {
+      /**
+       *        0
+       *      /  \
+       *    1     2
+       *  / \    / \
+       * 3   4  5   6
+       */
+      auto v = bits[n];
+      bits[n] = !v;
+      n = (n << 1) + (v ? 1 : 0) + 1;
+    }
+    return n;
+  }
+
+  size_t capacity() override {
+    return total - 1;
+  }
+
+  ~PLRURepl() override {
+    delete bits;
   }
 };
 
@@ -598,6 +635,7 @@ int main(int argc, char *argv[]) {
   // algorithms
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), PLRURepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), FIFORepl);
 
   auto limit_bits = 32 * 8 * 0x400;
