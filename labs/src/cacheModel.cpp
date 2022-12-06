@@ -59,6 +59,10 @@ public:
     replace_queue.erase(p);
     replace_queue.emplace_back(index);
   }
+
+  size_t capacity() {
+    return replace_queue.size() * 32;
+  }
 };
 
 /**
@@ -85,6 +89,8 @@ public:
 
   virtual ~CacheModel() = default;
 
+  virtual size_t capacity() = 0;
+
   // Update the cache state whenever data is read
   void readReq(UINT32 mem_addr) {
     m_rd_reqs++;
@@ -99,11 +105,11 @@ public:
     if (access(mem_addr)) m_wr_hits++;
   }
 
-  [[nodiscard]] float statistics() const {
+  float statistics() {
     float hitRate = 100 * (float) (m_rd_hits + m_wr_hits) / (float) (m_wr_reqs + m_rd_reqs);
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
-    Log("model: %s, %.2f%%, %.2f%%, %.2f%%", name.c_str(), hitRate, rdHitRate, wrHitRate);
+    Log("model: %s, %.2f%%, %.2f KiB", name.c_str(), hitRate, (float) capacity() / 8 / 0x400);
     Log("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%", m_rd_reqs, m_rd_hits, rdHitRate);
     Log("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%", m_wr_reqs, m_wr_hits, wrHitRate);
     return hitRate;
@@ -152,6 +158,10 @@ public:
     return getTag(addr) & (m_block_num - 1);
   }
 
+  size_t capacity() override {
+    return ((32 - m_blksz_log) + 1 + (1 << (m_blksz_log + 3))) * m_block_num;
+  }
+
 protected:
 
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
@@ -191,6 +201,10 @@ public:
   FullAssoCache(UINT32 block_num, UINT32 log_block_size)
       : inner(LinearCache(block_num, log_block_size)), lru(LinkedLRU(block_num)),
         CacheModel(block_num, log_block_size, "FullAssoCache") {
+  }
+
+  size_t capacity() override {
+    return lru.capacity() + inner.capacity();
   }
 
 private:
@@ -256,6 +270,18 @@ public:
           new LinearCache(1 << m_sets_log, log_block_size, string("SetAssoCache-Set-") + std::to_string(i)));
     }
     // Dbg("init done");
+  }
+
+  ~SetAssoCache() override {
+    for (auto set: sets) {
+      delete set;
+    }
+  }
+
+  size_t capacity() override {
+    size_t s = 0;
+    for (auto &set: sets) s += set->capacity();
+    return s;
   }
 
 protected:
@@ -369,24 +395,6 @@ void writeCache(UINT32 mem_addr) {
   }
 }
 
-// This knob will set the cache param m_block_num
-KNOB<UINT32> KnobBlockNum(KNOB_MODE_WRITEONCE, "pintool",
-                          "n", "512", "specify the number of blocks in bytes");
-
-// This knob will set the cache param m_blksz_log
-KNOB<UINT32> KnobBlockSizeLog(KNOB_MODE_WRITEONCE, "pintool",
-                              "b", "6", "specify the log of the block size in bytes");
-
-// This knob will set the cache param m_sets_log
-KNOB<UINT32> KnobSetsLog(KNOB_MODE_WRITEONCE, "pintool",
-                         "r", "7", "specify the log of the number of rows");
-
-// This knob will set the cache param m_asso
-KNOB<UINT32> KnobAssociativity(KNOB_MODE_WRITEONCE, "pintool",
-                               "a", "4", "specify the m_asso");
-// This knob sets the output file name
-KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "cacheModels.txt", "specify the output file name");
-
 // Pin calls this function every time a new instruction is encountered
 VOID Instruction(INS ins, VOID *v) {
   if (INS_IsMemoryRead(ins))
@@ -426,17 +434,17 @@ int main(int argc, char *argv[]) {
 
   srand(time(nullptr));
 
-  log_fp = fopen(KnobOutputFile.Value().c_str(), "w");
+  log_fp = fopen("cacheModels.txt", "w");
 
   Log("Cache Model Test Program");
 
-  models.emplace_back(new DirectMappingCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
+  models.emplace_back(new DirectMappingCache(512, 6));
   Dbg("init done: FullAssoCache");
 
-  models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
+  models.emplace_back(new FullAssoCache(512, 6));
   Dbg("init done: FullAssoCache");
 
-  models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  models.emplace_back(new SetAssoCache(9, 6, 4));
   Dbg("init done: SetAssoCache");
 
   // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
