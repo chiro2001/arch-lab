@@ -74,6 +74,8 @@ public:
   virtual ~ReplaceAlgo() {}
 
   virtual size_t select(bool update) = 0;
+
+  virtual size_t capacity() = 0;
 };
 
 class LRURepl : public ReplaceAlgo {
@@ -91,6 +93,17 @@ public:
     } else
       return lru.front();
   }
+
+  size_t capacity() override {
+    auto s = total;
+    size_t l = 0;
+    while (s) {
+      s >>= 1;
+      l++;
+    }
+    if (l > 0) l--;
+    return l;
+  }
 };
 
 class RandomRepl : public ReplaceAlgo {
@@ -99,6 +112,10 @@ public:
 
   size_t select(bool update) override {
     return rand() % total;
+  }
+
+  size_t capacity() override {
+    return 0;
   }
 };
 
@@ -327,6 +344,7 @@ public:
   size_t capacity() override {
     size_t s = 0;
     for (auto &set: sets) s += set->capacity();
+    for (int i = 0; i < 1 << m_sets_log; i++) replace[i]->capacity();
     return s;
   }
 
@@ -459,16 +477,16 @@ VOID Instruction(INS ins, VOID *v) {
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
   Dbg("All finished.");
-  vector<pair<string, float>> results;
+  vector<pair<string, pair<float, size_t>>> results;
   for (auto &model: models) {
-    results.emplace_back(model->name, model->statistics());
+    results.emplace_back(model->name, pair(model->statistics(), model->capacity()));
     delete model;
   }
   log_write("%26s == RANKING ==\n", " ");
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
   for (auto &r: results) {
-    log_write("%32s : %.4f%%\n", r.first.c_str(), r.second);
+    log_write("%32s : %.4f%% : %5.2f KiB\n", r.first.c_str(), r.second.first, (float) r.second.second / 8 / 0x400);
   }
 }
 
@@ -506,8 +524,8 @@ int main(int argc, char *argv[]) {
 
   Log("Cache Model Test Program");
 
-  APPEND_TEST_MODEL(DirectMappingCache(128, 6));
-  APPEND_TEST_MODEL(FullAssoCache(128, 6));
+  APPEND_TEST_MODEL(DirectMappingCache(256, 6));
+  APPEND_TEST_MODEL(FullAssoCache(256, 6));
 
   APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), RandomRepl);
