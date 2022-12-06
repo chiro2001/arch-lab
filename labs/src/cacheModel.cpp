@@ -38,6 +38,29 @@ UINT32 get_phy_addr(UINT32 virtual_addr) {
   return (get_phy_page_no(get_vir_page_no(virtual_addr)) << PAGE_SIZE_LOG) + get_page_offset(virtual_addr);
 }
 
+class LinkedLRU {
+  vector<UINT32> replace_queue;
+public:
+  explicit LinkedLRU(size_t count) {
+    for (int i = 0; i < count; i++)
+      replace_queue.emplace_back(i);
+  }
+
+  UINT32 front() {
+    return *replace_queue.begin();
+  }
+
+  void update(UINT32 index) {
+    // insert to back, and shift other indexes
+    auto p = find(replace_queue.begin(), replace_queue.end(), index);
+    if (p == replace_queue.end()) {
+      Err("cannot find block %d!!", index);
+    }
+    replace_queue.erase(p);
+    replace_queue.emplace_back(index);
+  }
+};
+
 /**
  * Cache Model Base Class
  */
@@ -76,11 +99,7 @@ public:
     if (access(mem_addr)) m_wr_hits++;
   }
 
-  [[nodiscard]] UINT32 getRdReq() const { return m_rd_reqs; }
-
-  [[nodiscard]] UINT32 getWrReq() const { return m_wr_reqs; }
-
-  float statistics() {
+  [[nodiscard]] float statistics() const {
     float hitRate = 100 * (float) (m_rd_hits + m_wr_hits) / (float) (m_wr_reqs + m_rd_reqs);
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
@@ -108,7 +127,7 @@ class LinearCache : public CacheModel {
 public:
   bool *m_valids;
   UINT32 *m_tags;
-  vector<UINT32> m_replace_q;    // Cache块替换的候选队列
+
   LinearCache(UINT32 block_num, UINT32 log_block_size, string name = "DirectMappingCache") :
       CacheModel(block_num, log_block_size, std::move(name)) {
     Dbg("%s(0x%x, %d)", this->name.c_str(), block_num, log_block_size);
@@ -117,7 +136,6 @@ public:
 
     for (UINT i = 0; i < m_block_num; i++) {
       m_valids[i] = false;
-      m_replace_q.emplace_back(i);
     }
   }
 
@@ -167,10 +185,11 @@ using DirectMappingCache = LinearCache;
 class FullAssoCache : public CacheModel {
 public:
   LinearCache inner;
+  LinkedLRU lru;
 
   // Constructor
   FullAssoCache(UINT32 block_num, UINT32 log_block_size)
-      : inner(LinearCache(block_num, log_block_size)),
+      : inner(LinearCache(block_num, log_block_size)), lru(LinkedLRU(block_num)),
         CacheModel(block_num, log_block_size, "FullAssoCache") {
   }
 
@@ -200,7 +219,7 @@ private:
     }
 
     // Get the to-be-replaced block id using m_replace_q
-    UINT32 bid_2be_replaced = inner.m_replace_q[0];
+    UINT32 bid_2be_replaced = lru.front();
 
     // Replace the cache block...?
     inner.m_valids[bid_2be_replaced] = true;
@@ -212,13 +231,7 @@ private:
 
   // Update m_replace_q
   void updateReplaceQ(UINT32 blk_id) override {
-    // insert to head, and shift other indexes
-    auto index = find(inner.m_replace_q.begin(), inner.m_replace_q.end(), blk_id);
-    if (index == inner.m_replace_q.end()) {
-      printf("cannot find block %d!!", blk_id);
-    }
-    inner.m_replace_q.erase(index);
-    inner.m_replace_q.emplace_back(blk_id);
+    lru.update(blk_id);
   }
 };
 
