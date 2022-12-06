@@ -119,7 +119,7 @@ public:
   size_t select(bool update) override {
     Assert(update, "Must update when select me");
     size_t n = 0;
-    while (n < (total >> 1) - 1) {
+    while (n < total - 1) {
       /**
        *        0
        *      /  \
@@ -131,6 +131,9 @@ public:
       bits[n] = !v;
       n = (n << 1) + (v ? 1 : 0) + 1;
     }
+    Assert(n >= total - 1, "well");
+    n = n - (total - 1);
+    // Log("n = %zu", n);
     return n;
   }
 
