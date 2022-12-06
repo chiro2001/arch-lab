@@ -51,8 +51,9 @@ protected:
   UINT64 m_rd_hits;       // The number of hit read-requests
   UINT64 m_wr_hits;       // The number of hit write-requests
 
-  string name;
 public:
+  string name;
+
   // Constructor
   CacheModel(UINT32 block_num, UINT32 log_block_size, string name = "Basic model")
       : m_block_num(block_num), m_blksz_log(log_block_size),
@@ -79,13 +80,14 @@ public:
 
   [[nodiscard]] UINT32 getWrReq() const { return m_wr_reqs; }
 
-  void statistics() {
+  float statistics() {
     float hitRate = 100 * (float) (m_rd_hits + m_wr_hits) / (float) (m_wr_reqs + m_rd_reqs);
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
     Log("model: %s, %.2f%%, %.2f%%, %.2f%%", name.c_str(), hitRate, rdHitRate, wrHitRate);
     Log("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%", m_rd_reqs, m_rd_hits, rdHitRate);
     Log("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%", m_wr_reqs, m_wr_hits, wrHitRate);
+    return hitRate;
   }
 
 protected:
@@ -358,9 +360,16 @@ VOID Instruction(INS ins, VOID *v) {
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
   Dbg("All finished.");
+  vector<pair<string, float>> results;
   for (auto &model: models) {
-    model->statistics();
+    results.emplace_back(model->name, model->statistics());
     delete model;
+  }
+  Log("%18s == RANKING ==", " ");
+  sort(results.begin(), results.end(),
+       [](auto &a, auto &b) { return a.second > b.second; });
+  for (auto &r : results) {
+    Log("%24s : %.2f%%", r.first.c_str(), r.second);
   }
 }
 
