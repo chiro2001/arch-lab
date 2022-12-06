@@ -13,7 +13,7 @@ using namespace std;
 
 typedef unsigned int UINT32;
 typedef unsigned long int UINT64;
-
+const bool verbose_statistics = false;
 
 #define PAGE_SIZE_LOG       12
 #define PHY_MEM_SIZE_LOG    30
@@ -163,15 +163,20 @@ public:
     if (access(mem_addr)) m_wr_hits++;
   }
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "Simplify"
   float statistics() {
     float hitRate = 100 * (float) (m_rd_hits + m_wr_hits) / (float) (m_wr_reqs + m_rd_reqs);
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
-    log_write("model: %s, %.4f%%, %.4f KiB\n", name.c_str(), hitRate, (float) capacity() / 8 / 0x400);
-    log_write("\t read req: %lu,\thit: %lu,\thit rate: %.4f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
-    log_write("\twrite req: %lu,\thit: %lu,\thit rate: %.4f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
+    if (verbose_statistics) {
+      log_write("model: %s, %.4f%%, %.4f KiB\n", name.c_str(), hitRate, (float) capacity() / 8 / 0x400);
+      log_write("\t read req: %lu,\thit: %lu,\thit rate: %.4f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
+      log_write("\twrite req: %lu,\thit: %lu,\thit rate: %.4f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
+    }
     return hitRate;
   }
+#pragma clang diagnostic pop
 
 protected:
   // Look up the cache to decide whether the access is hit or missed
@@ -494,10 +499,11 @@ VOID Fini(INT32 code, VOID *v) {
     delete model;
   }
   log_write("%26s == RANKING ==\n", " ");
+  log_write("|              model              |  miss rate  |    size   |\n");
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
   for (auto &r: results) {
-    log_write("%32s : %.8f%% : %5.2f KiB\n", r.first.c_str(), 100 - r.second.first, (float) r.second.second / 8 / 0x400);
+    log_write("|%32s | %.8f%% | %5.2f KiB |\n", r.first.c_str(), 100 - r.second.first, (float) r.second.second / 8 / 0x400);
   }
 }
 
@@ -539,7 +545,7 @@ int main(int argc, char *argv[]) {
 
   log_fp = fopen(filename.c_str(), "w");
 
-  Log("Cache Model Test Program, log to file %s", filename.c_str());
+  Dbg("Cache Model Test Program, log to file %s", filename.c_str());
 
   APPEND_TEST_MODEL(DirectMappingCache(256, 6));
   APPEND_TEST_MODEL(FullAssoCache(256, 6));
