@@ -498,8 +498,9 @@ VOID Fini(INT32 code, VOID *v) {
     results.emplace_back(model->name, pair(model->statistics(), model->capacity()));
     delete model;
   }
-  log_write("%26s == RANKING ==\n", " ");
+  // log_write("%26s == RANKING ==\n", " ");
   log_write("|              model              |  miss rate  |    size   |\n");
+  log_write("| ------------------------------- |  ---------  | --------- |\n");
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
   for (auto &r: results) {
@@ -550,25 +551,14 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_MODEL(DirectMappingCache(256, 6));
   APPEND_TEST_MODEL(FullAssoCache(256, 6));
 
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), RandomRepl);
-
+  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 2), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(8, 6, 1), RandomRepl);
-
   APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 2), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(8, 6, 1), RandomRepl);
-
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(7, 6, 2), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(8, 6, 1), RandomRepl);
-
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), LRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), LRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
 
   // models.emplace_back(new SetAsso_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   // Dbg("init done: SetAsso_VIVT");
