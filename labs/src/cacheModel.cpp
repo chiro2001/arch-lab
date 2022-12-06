@@ -119,6 +119,32 @@ public:
   }
 };
 
+class FIFORepl : public ReplaceAlgo {
+  size_t cnt;
+public:
+  FIFORepl(size_t total) : ReplaceAlgo(total), cnt(0) {}
+
+  size_t select(bool update) override {
+    auto cnt_last = cnt;
+    if (update) {
+      cnt++;
+      if (cnt == total) cnt = 0;
+    }
+    return cnt_last;
+  }
+
+  size_t capacity() override {
+    auto s = total;
+    size_t l = 0;
+    while (s) {
+      s >>= 1;
+      l++;
+    }
+    if (l > 0) l--;
+    return l;
+  }
+};
+
 /**
  * Cache Model Base Class
  */
@@ -562,12 +588,17 @@ int main(int argc, char *argv[]) {
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
 
   // Bigger block better
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), LRURepl);
+
+  // algorithms
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), FIFORepl);
 
   auto limit_bits = 32 * 8 * 0x400;
   for (auto const &m: models) {
