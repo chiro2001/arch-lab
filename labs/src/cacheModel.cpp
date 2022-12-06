@@ -62,16 +62,16 @@ public:
 
   // Update the cache state whenever data is read
   void readReq(UINT32 mem_addr) {
-//    m_rd_reqs++;
-//    Dbg("R [%6lu] %08x", m_rd_reqs, mem_addr);
-//    if (access(mem_addr)) m_rd_hits++;
+    m_rd_reqs++;
+    // Dbg("R [%6lu] %08x", m_rd_reqs, mem_addr);
+    if (access(mem_addr)) m_rd_hits++;
   }
 
   // Update the cache state whenever data is written
   void writeReq(UINT32 mem_addr) {
-//    m_wr_reqs++;
-//    Dbg("W [%6lu] %08x", m_wr_reqs, mem_addr);
-//    if (access(mem_addr)) m_wr_hits++;
+    m_wr_reqs++;
+    Dbg("W [%6lu] %08x", m_wr_reqs, mem_addr);
+    if (access(mem_addr)) m_wr_hits++;
   }
 
   [[nodiscard]] UINT32 getRdReq() const { return m_rd_reqs; }
@@ -325,21 +325,21 @@ KNOB<UINT32> KnobAssociativity(KNOB_MODE_WRITEONCE, "pintool",
 
 // Pin calls this function every time a new instruction is encountered
 VOID Instruction(INS ins, VOID *v) {
-//  if (INS_IsMemoryRead(ins))
-//    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) readCache, IARG_MEMORYREAD_EA, IARG_END);
-//  if (INS_IsMemoryWrite(ins))
-//    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) writeCache, IARG_MEMORYWRITE_EA, IARG_END);
+  if (INS_IsMemoryRead(ins))
+    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) readCache, IARG_MEMORYREAD_EA, IARG_END);
+  if (INS_IsMemoryWrite(ins))
+    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) writeCache, IARG_MEMORYWRITE_EA, IARG_END);
 }
 
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
   Dbg("All finished.");
-//  ofstream output;
-//  output.setf(ios::showbase);
-//  for (auto &model: models) {
-//    model->statistics(output);
-//    delete model;
-//  }
+  ofstream output;
+  output.setf(ios::showbase);
+  for (auto &model: models) {
+    model->statistics(output);
+    delete model;
+  }
 }
 
 INT32 Usage() {
@@ -355,8 +355,8 @@ int main(int argc, char *argv[]) {
 
   Log("Cache Model Test Program");
 
-//  models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
-//  Dbg("init done: FullAssoCache");
+  models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
+  Dbg("init done: FullAssoCache");
 //
 //  models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
 //  Dbg("init done: SetAssoCache");
@@ -371,10 +371,10 @@ int main(int argc, char *argv[]) {
   Dbg("%lu models init done", models.size());
 
   // Register Instruction to be called to instrument instructions
-//  INS_AddInstrumentFunction(Instruction, nullptr);
+  INS_AddInstrumentFunction(Instruction, nullptr);
 
   // Register Fini to be called when the application exits
-//  PIN_AddFiniFunction(Fini, nullptr);
+  PIN_AddFiniFunction(Fini, nullptr);
 
   // Start the program, never returns
   PIN_StartProgram();
