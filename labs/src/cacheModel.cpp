@@ -165,6 +165,7 @@ public:
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "Simplify"
+
   float statistics() {
     float hitRate = 100 * (float) (m_rd_hits + m_wr_hits) / (float) (m_wr_reqs + m_rd_reqs);
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
@@ -176,6 +177,7 @@ public:
     }
     return hitRate;
   }
+
 #pragma clang diagnostic pop
 
 protected:
@@ -354,7 +356,7 @@ public:
   size_t capacity() override {
     size_t s = 0;
     for (auto &set: sets) s += set->capacity();
-    for (int i = 0; i < 1 << m_sets_log; i++) replace[i]->capacity();
+    // for (int i = 0; i < 1 << m_sets_log; i++) replace[i]->capacity();
     return s;
   }
 
@@ -504,7 +506,8 @@ VOID Fini(INT32 code, VOID *v) {
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
   for (auto &r: results) {
-    log_write("|%32s | %.8f%% | %5.2f KiB |\n", r.first.c_str(), 100 - r.second.first, (float) r.second.second / 8 / 0x400);
+    log_write("|%32s | %.8f%% | %5.2f KiB |\n", r.first.c_str(), 100 - r.second.first,
+              (float) r.second.second / 8 / 0x400);
   }
 }
 
@@ -551,26 +554,25 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_MODEL(DirectMappingCache(256, 6));
   APPEND_TEST_MODEL(FullAssoCache(256, 6));
 
-  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
 
-  // models.emplace_back(new SetAsso_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  // Dbg("init done: SetAsso_VIVT");
-  // models.emplace_back(new SetAsso_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  // Dbg("init done: SetAsso_PIPT");
-  // models.emplace_back(new SetAsso_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  // Dbg("init done: SetAsso_VIPT");
+  // Bigger block better
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), LRURepl);
 
   auto limit_bits = 32 * 8 * 0x400;
   for (auto const &m: models) {
-    Assert(m->capacity() < limit_bits, "%s size is larger than limit! size is %.2f KiB", m->name.c_str(),
-           (float) m->capacity() / 8 / 0x400);
+    Assert(m->capacity() < limit_bits, "%s size is larger than limit %.2f KiB! size is %.2f KiB", m->name.c_str(),
+           (float) limit_bits / 8 / 0x400, (float) m->capacity() / 8 / 0x400);
   }
 
   Dbg("%lu models init done", models.size());
