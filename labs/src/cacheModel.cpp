@@ -479,6 +479,7 @@ private:
       empty_set->m_valids[index_set] = true;
     } else {
       // kick out one block
+      // Assert(replace, "must set replace algorithm");
       auto select = replace ? replace[index_set]->select(true) : (rand() % m_asso);
       auto set = sets[select];
       set->m_tags[index_set] = tag;
