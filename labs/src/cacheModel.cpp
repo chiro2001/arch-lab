@@ -2,6 +2,7 @@
 #include <cmath>
 #include <fstream>
 #include <ctime>
+#include <utility>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -50,12 +51,12 @@ protected:
   UINT64 m_rd_hits;       // The number of hit read-requests
   UINT64 m_wr_hits;       // The number of hit write-requests
 
-  string name = "Basic model";
+  string name;
 public:
   // Constructor
-  CacheModel(UINT32 block_num, UINT32 log_block_size)
+  CacheModel(UINT32 block_num, UINT32 log_block_size, string name = "Basic model")
       : m_block_num(block_num), m_blksz_log(log_block_size),
-        m_rd_reqs(0), m_wr_reqs(0), m_rd_hits(0), m_wr_hits(0) {
+        m_rd_reqs(0), m_wr_reqs(0), m_rd_hits(0), m_wr_hits(0), name(std::move(name)) {
   }
 
   virtual ~CacheModel() = default;
@@ -81,9 +82,9 @@ public:
   void statistics() {
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
-    Log("model: %s, %.2f%%, %.2f%%\n", name.c_str(), rdHitRate, wrHitRate);
-    Log("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
-    Log("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
+    Log("model: %s, %.2f%%, %.2f%%", name.c_str(), rdHitRate, wrHitRate);
+    Log("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%", m_rd_reqs, m_rd_hits, rdHitRate);
+    Log("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%", m_wr_reqs, m_wr_hits, wrHitRate);
   }
 
 protected:
@@ -151,7 +152,7 @@ public:
   // Constructor
   FullAssoCache(UINT32 block_num, UINT32 log_block_size)
       : inner(LinearCache(block_num, log_block_size)),
-        CacheModel(block_num, log_block_size) {
+        CacheModel(block_num, log_block_size, "FullAssoCache") {
   }
 
 private:
@@ -208,9 +209,9 @@ public:
   vector<LinearCache> sets;
 
   // Constructor
-  SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso) :
+  SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso, string name = "SetAssoCache") :
       m_sets_log(sets_log), m_asso(asso),
-      CacheModel(asso, log_block_size) {
+      CacheModel(asso, log_block_size, std::move(name)) {
     Dbg("SetAssoCache(%u, %u, %u)", sets_log, log_block_size, asso);
     for (auto i = 0; i < m_asso; i++) {
       Dbg("creating set %d", i);
@@ -261,7 +262,8 @@ private:
  */
 class SetAssoCache_VIVT : public SetAssoCache {
 public:
-  SetAssoCache_VIVT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso) {}
+  SetAssoCache_VIVT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso,
+                                                                                     "SetAssoCache_VIVT") {}
 
 private:
 };
@@ -271,7 +273,8 @@ private:
  */
 class SetAssoCache_PIPT : public SetAssoCache {
 public:
-  SetAssoCache_PIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso) {}
+  SetAssoCache_PIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso,
+                                                                                     "SetAssoCache_PIPT") {}
 
 private:
 };
@@ -281,7 +284,8 @@ private:
  */
 class SetAssoCache_VIPT : public SetAssoCache {
 public:
-  SetAssoCache_VIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso) {}
+  SetAssoCache_VIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso,
+                                                                                     "SetAssoCache_VIPT") {}
 
 private:
 };
