@@ -122,7 +122,8 @@ public:
   }
 
   UINT32 getTag(UINT32 addr) {
-    return (addr >> m_blksz_log) & ((1 << m_block_num) - 1);
+    // return (addr >> m_blksz_log) & ((1 << m_block_num) - 1);
+    return addr >> m_blksz_log;
   }
 
 protected:
@@ -179,8 +180,9 @@ private:
     // Get the to-be-replaced block id using m_replace_q
     UINT32 bid_2be_replaced = inner.m_replace_q[0];
 
-    // Replace the cache block..?
-    // TODO
+    // Replace the cache block...?
+    inner.m_valids[bid_2be_replaced] = true;
+    inner.m_tags[bid_2be_replaced] = inner.getTag(mem_addr);
     updateReplaceQ(bid_2be_replaced);
 
     return false;
@@ -194,7 +196,7 @@ private:
       printf("cannot find block %d!!", blk_id);
     }
     inner.m_replace_q.erase(index);
-    inner.m_replace_q.insert(inner.m_replace_q.begin(), blk_id);
+    inner.m_replace_q.emplace_back(blk_id);
   }
 };
 
