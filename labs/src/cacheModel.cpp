@@ -506,10 +506,16 @@ int main(int argc, char *argv[]) {
 
   Log("Cache Model Test Program");
 
-  APPEND_TEST_MODEL(DirectMappingCache(512, 6));
-  APPEND_TEST_MODEL(FullAssoCache(512, 6));
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(9, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(9, 6, 4), LRURepl);
+  APPEND_TEST_MODEL(DirectMappingCache(128, 6));
+  APPEND_TEST_MODEL(FullAssoCache(128, 6));
+
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), RandomRepl);
+
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), LRURepl);
 
   // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   // Dbg("init done: SetAssoCache_VIVT");
@@ -517,6 +523,12 @@ int main(int argc, char *argv[]) {
   // Dbg("init done: SetAssoCache_PIPT");
   // models.emplace_back(new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   // Dbg("init done: SetAssoCache_VIPT");
+
+  auto limit_bits = 32 * 8 * 0x400;
+  for (auto const &m: models) {
+    Assert(m->capacity() < limit_bits, "%s size is larger than limit! size is %.2f KiB", m->name.c_str(),
+           (float) m->capacity() / 8 / 0x400);
+  }
 
   Dbg("%lu models init done", models.size());
 
