@@ -247,14 +247,10 @@ public:
 
 protected:
 
-  // addr: [ tag | group index | set index | block offset ]
+  // addr: [ tag | set index | block offset ]
 
   UINT32 getTag(UINT32 addr) {
     return addr >> (m_blksz_log + m_asso + m_sets_log);
-  }
-
-  UINT32 getGroupIndex(UINT32 addr) {
-    return (addr >> (m_blksz_log + m_asso)) & ((1 << m_sets_log) - 1);
   }
 
   UINT32 getSetIndex(UINT32 addr) {
@@ -264,17 +260,42 @@ protected:
 private:
   // Look up the cache to decide whether the access is hit or missed
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    Dbg("lookup(0x%08x)", mem_addr);
     auto tag = getTag(mem_addr);
-    auto index_group = getGroupIndex(mem_addr);
     auto index_set = getSetIndex(mem_addr);
-    auto &set = sets[index_group];
-    return set->m_valids[index_set] && set->m_tags[index_set] == tag;
+    for (int i = 0; i < sets.size(); i++) {
+      auto &set = sets[i];
+      auto r = set->m_valids[index_set] && set->m_tags[index_set] == tag;
+      blk_id = i;
+      if (r) return true;
+    }
+    return false;
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
   bool access(UINT32 mem_addr) override {
-    // TODO
+    UINT32 blk_id = 0;
+    if (lookup(mem_addr, blk_id)) {
+      return true;
+    }
+    auto tag = getTag(mem_addr);
+    auto index_set = getSetIndex(mem_addr);
+    LinearCache *empty_set = nullptr;
+    for (auto &set: sets) {
+      if (!set->m_valids[index_set]) {
+        empty_set = set;
+        break;
+      }
+    }
+    if (empty_set != nullptr) {
+      empty_set->m_tags[index_set] = tag;
+      empty_set->m_valids[index_set] = true;
+    } else {
+      // kick out one block
+      auto select = rand() % m_asso;
+      auto set = sets[select];
+      set->m_tags[index_set] = tag;
+      set->m_valids[index_set] = true;
+    }
     return false;
   }
 
@@ -389,6 +410,8 @@ FILE *log_fp = nullptr;
 int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
+
+  srand(time(nullptr));
 
   log_fp = fopen(KnobOutputFile.Value().c_str(), "w");
 
