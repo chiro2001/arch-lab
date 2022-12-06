@@ -4,6 +4,7 @@
 #include <ctime>
 #include <vector>
 #include <string>
+#include <iostream>
 #include "debug_macros.h"
 #include "pin.H"
 
@@ -53,24 +54,24 @@ protected:
 public:
   // Constructor
   CacheModel(UINT32 block_num, UINT32 log_block_size)
-          : m_block_num(block_num), m_blksz_log(log_block_size),
-            m_rd_reqs(0), m_wr_reqs(0), m_rd_hits(0), m_wr_hits(0) {
+      : m_block_num(block_num), m_blksz_log(log_block_size),
+        m_rd_reqs(0), m_wr_reqs(0), m_rd_hits(0), m_wr_hits(0) {
   }
 
   virtual ~CacheModel() = default;
 
   // Update the cache state whenever data is read
   void readReq(UINT32 mem_addr) {
-    m_rd_reqs++;
-    // Dbg("R [%6lu] %08x", m_rd_reqs, mem_addr);
-    if (access(mem_addr)) m_rd_hits++;
+//    m_rd_reqs++;
+//    Dbg("R [%6lu] %08x", m_rd_reqs, mem_addr);
+//    if (access(mem_addr)) m_rd_hits++;
   }
 
   // Update the cache state whenever data is written
   void writeReq(UINT32 mem_addr) {
-    m_wr_reqs++;
-    Dbg("W [%6lu] %08x", m_wr_reqs, mem_addr);
-    if (access(mem_addr)) m_wr_hits++;
+//    m_wr_reqs++;
+//    Dbg("W [%6lu] %08x", m_wr_reqs, mem_addr);
+//    if (access(mem_addr)) m_wr_hits++;
   }
 
   [[nodiscard]] UINT32 getRdReq() const { return m_rd_reqs; }
@@ -152,8 +153,8 @@ public:
 
   // Constructor
   FullAssoCache(UINT32 block_num, UINT32 log_block_size)
-          : inner(LinearCache(block_num, log_block_size)),
-            CacheModel(block_num, log_block_size) {
+      : inner(LinearCache(block_num, log_block_size)),
+        CacheModel(block_num, log_block_size) {
   }
 
 private:
@@ -211,8 +212,8 @@ public:
 
   // Constructor
   SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso) :
-          m_sets_log(sets_log), m_asso(asso),
-          CacheModel(asso, log_block_size) {
+      m_sets_log(sets_log), m_asso(asso),
+      CacheModel(asso, log_block_size) {
     Dbg("SetAssoCache(%u, %u, %u)", sets_log, log_block_size, asso);
     for (auto i = 0; i < m_asso; i++) {
       Dbg("creating set %d", i);
@@ -324,34 +325,41 @@ KNOB<UINT32> KnobAssociativity(KNOB_MODE_WRITEONCE, "pintool",
 
 // Pin calls this function every time a new instruction is encountered
 VOID Instruction(INS ins, VOID *v) {
-  if (INS_IsMemoryRead(ins))
-    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) readCache, IARG_MEMORYREAD_EA, IARG_END);
-  if (INS_IsMemoryWrite(ins))
-    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) writeCache, IARG_MEMORYWRITE_EA, IARG_END);
+//  if (INS_IsMemoryRead(ins))
+//    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) readCache, IARG_MEMORYREAD_EA, IARG_END);
+//  if (INS_IsMemoryWrite(ins))
+//    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR) writeCache, IARG_MEMORYWRITE_EA, IARG_END);
 }
 
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
-  ofstream output;
-  output.setf(ios::showbase);
-  for (auto &model: models) {
-    model->statistics(output);
-    delete model;
-  }
+  Dbg("All finished.");
+//  ofstream output;
+//  output.setf(ios::showbase);
+//  for (auto &model: models) {
+//    model->statistics(output);
+//    delete model;
+//  }
+}
+
+INT32 Usage() {
+  cerr << "This tool tests multiple models of caching" << endl;
+  cerr << endl << KNOB_BASE::StringKnobSummary() << endl;
+  return -1;
 }
 
 // argc, argv are the entire command line, including pin -t <toolname> -- ...
 int main(int argc, char *argv[]) {
   // Initialize pin
-  PIN_Init(argc, argv);
+  if (PIN_Init(argc, argv)) return Usage();
 
   Log("Cache Model Test Program");
 
-  models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
-  Dbg("init done: FullAssoCache");
-
-  models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  Dbg("init done: SetAssoCache");
+//  models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
+//  Dbg("init done: FullAssoCache");
+//
+//  models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+//  Dbg("init done: SetAssoCache");
 
   // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   // Dbg("init done: SetAssoCache_VIVT");
@@ -363,10 +371,10 @@ int main(int argc, char *argv[]) {
   Dbg("%lu models init done", models.size());
 
   // Register Instruction to be called to instrument instructions
-  INS_AddInstrumentFunction(Instruction, nullptr);
+//  INS_AddInstrumentFunction(Instruction, nullptr);
 
   // Register Fini to be called when the application exits
-  PIN_AddFiniFunction(Fini, nullptr);
+//  PIN_AddFiniFunction(Fini, nullptr);
 
   // Start the program, never returns
   PIN_StartProgram();
