@@ -497,7 +497,7 @@ VOID Fini(INT32 code, VOID *v) {
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
   for (auto &r: results) {
-    log_write("%32s : %.4f%% : %5.2f KiB\n", r.first.c_str(), r.second.first, (float) r.second.second / 8 / 0x400);
+    log_write("%32s : %.8f%% : %5.2f KiB\n", r.first.c_str(), 1 - r.second.first, (float) r.second.second / 8 / 0x400);
   }
 }
 
@@ -531,9 +531,15 @@ int main(int argc, char *argv[]) {
 
   srand(time(nullptr));
 
-  log_fp = fopen("cacheModels.txt", "w");
+  auto last_arg = string(argv[argc - 1]);
+  if (last_arg.find('/') != string::npos) {
+    last_arg = last_arg.substr(last_arg.rfind('/') + 1);
+  }
+  auto filename = string("cacheModels-") + last_arg + ".txt";
 
-  Log("Cache Model Test Program");
+  log_fp = fopen(filename.c_str(), "w");
+
+  Log("Cache Model Test Program, log to file %s", filename.c_str());
 
   APPEND_TEST_MODEL(DirectMappingCache(256, 6));
   APPEND_TEST_MODEL(FullAssoCache(256, 6));

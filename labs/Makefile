@@ -1,6 +1,9 @@
 tests := bzip2 sjeng wrf sphinx3
 extra_tests := coremark
 
+#TOOL ?= brchPredict
+TOOL ?= cacheModel
+
 all: $(tests) $(extra_tests)
 
 build:
@@ -14,21 +17,21 @@ build-prepare:
 	cmake --build build
 
 $(tests): build
-	# ./build/_deps/intelpin-src/pin -t ./build/libbrchPredict.so -- runspec --size=test --noreportable --nobuild $@
-	./build/_deps/intelpin-src/pin -t ./build/libbrchPredict.so -- runspec --size=test --noreportable $@
+	# ./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- runspec --size=test --noreportable --nobuild $@
+	./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- runspec --size=test --noreportable $@
 
 prepare-%: build-prepare
-	./build/_deps/intelpin-src/pin -t ./build/libbrchPredict.so -- runspec --size=test --noreportable $*
+	./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- runspec --size=test --noreportable $*
 
 prepare: $(foreach t,$(tests),prepare-$(t))
 
 coremark: build
-	./build/_deps/intelpin-src/pin -t ./build/libbrchPredict.so -- ../lab1/workspace/coremark.exe
+	./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- ../lab1/workspace/coremark.exe
 
 stats:
 	python scripts/draw.py
 
 clean:
-	-rm -rf build brchPredict*.txt
+	-rm -rf build $(TOOL)*.txt
 
 .PHONY: build all coremark $(tests) clean
