@@ -91,6 +91,10 @@ public:
 
   virtual size_t capacity() = 0;
 
+  void setName(const string &name_) {
+    this->name = name_;
+  }
+
   // Update the cache state whenever data is read
   void readReq(UINT32 mem_addr) {
     m_rd_reqs++;
@@ -425,6 +429,12 @@ INT32 Usage() {
   return -1;
 }
 
+#define APPEND_TEST_MODEL(inst) do {   \
+  auto _p = (new inst);                \
+  models.emplace_back(_p);             \
+  _p->setName(#inst);                  \
+} while (0)
+
 FILE *log_fp = nullptr;
 
 // argc, argv are the entire command line, including pin -t <toolname> -- ...
@@ -438,14 +448,9 @@ int main(int argc, char *argv[]) {
 
   Log("Cache Model Test Program");
 
-  models.emplace_back(new DirectMappingCache(512, 6));
-  Dbg("init done: FullAssoCache");
-
-  models.emplace_back(new FullAssoCache(512, 6));
-  Dbg("init done: FullAssoCache");
-
-  models.emplace_back(new SetAssoCache(9, 6, 4));
-  Dbg("init done: SetAssoCache");
+  APPEND_TEST_MODEL(DirectMappingCache(512, 6));
+  APPEND_TEST_MODEL(FullAssoCache(512, 6));
+  APPEND_TEST_MODEL(SetAssoCache(9, 6, 4));
 
   // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   // Dbg("init done: SetAssoCache_VIVT");

@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="brchPredict" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="arch-labs" TARGET_NAME="brchPredict" CONFIG_NAME="Debug" RUN_PATH="$CTestCurrentExecutableName$" TEST_METHOD="run_brchPredict" TEST_MODE="SUITE_TEST">
+  <configuration default="false" name="brchPredict" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="arch-labs" TARGET_NAME="brchPredict" CONFIG_NAME="Debug" RUN_PATH="$CTestCurrentExecutableName$" TEST_MODE="PATTERN">
     <method v="2">
       <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       <option name="BeforeTestRunTask" enabled="true" />
