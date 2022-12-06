@@ -80,9 +80,10 @@ public:
   [[nodiscard]] UINT32 getWrReq() const { return m_wr_reqs; }
 
   void statistics() {
+    float hitRate = 100 * (float) (m_rd_hits + m_wr_hits) / (float) (m_wr_reqs + m_rd_reqs);
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
-    Log("model: %s, %.2f%%, %.2f%%", name.c_str(), rdHitRate, wrHitRate);
+    Log("model: %s, %.2f%%, %.2f%%, %.2f%%", name.c_str(), hitRate, rdHitRate, wrHitRate);
     Log("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%", m_rd_reqs, m_rd_hits, rdHitRate);
     Log("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%", m_wr_reqs, m_wr_hits, wrHitRate);
   }
