@@ -39,11 +39,13 @@ add_compile_options(-O3)
 
 CPMAddPackage(
         NAME debug_macros
-        VERSION 0.9
+        VERSION 1.02
         GITHUB_REPOSITORY chiro2001/debug-macros)
 
 link_libraries(debug_macros)
-target_compile_definitions(debug_macros INTERFACE -DCONFIG_DEBUG=1 -DCONFIG_FILE_LOG=1)
+target_compile_definitions(debug_macros INTERFACE
+        -DCONFIG_DEBUG=1 -DCONFIG_FILE_LOG=1
+        -DCONFIG_LOG_COLOR_DISABLED=1)
 
 # Instruction counter example
 add_pintool(icount ${PIN_DIR}/source/tools/InstLibExamples/icount.cpp)

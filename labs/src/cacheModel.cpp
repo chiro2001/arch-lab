@@ -78,15 +78,12 @@ public:
 
   [[nodiscard]] UINT32 getWrReq() const { return m_wr_reqs; }
 
-  void dumpResults() const {
+  void statistics() {
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
-    printf("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
-    printf("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
-  }
-
-  void statistics(ofstream &file) {
-    file << "Ok";
+    Log("model: %s, %.2f%%, %.2f%%\n", name.c_str(), rdHitRate, wrHitRate);
+    Log("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
+    Log("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
   }
 
 protected:
@@ -336,10 +333,8 @@ VOID Instruction(INS ins, VOID *v) {
 // This function is called when the application exits
 VOID Fini(INT32 code, VOID *v) {
   Dbg("All finished.");
-  ofstream output;
-  output.setf(ios::showbase);
   for (auto &model: models) {
-    model->statistics(output);
+    model->statistics();
     delete model;
   }
 }
