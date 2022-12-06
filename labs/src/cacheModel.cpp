@@ -111,6 +111,7 @@ public:
   vector<UINT32> m_replace_q;    // Cache块替换的候选队列
   LinearCache(UINT32 block_num, UINT32 log_block_size) :
       CacheModel(block_num, log_block_size, "DirectMappingCache") {
+    Dbg("LinearCache(0x%x, %d)", block_num, log_block_size);
     m_valids = new bool[m_block_num];
     m_tags = new UINT32[m_block_num];
 
@@ -229,7 +230,7 @@ public:
   UINT32 m_sets_log;
   // total asso sets
   UINT32 m_asso;
-  vector<LinearCache> sets;
+  vector<LinearCache *> sets;
 
   // Constructor
   SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso, string name = "SetAssoCache") :
@@ -238,8 +239,9 @@ public:
     Dbg("SetAssoCache(%u, %u, %u)", sets_log, log_block_size, asso);
     for (auto i = 0; i < m_asso; i++) {
       Dbg("creating set %d", i);
-      sets.emplace_back(LinearCache(1 << m_sets_log, log_block_size));
+      sets.emplace_back(new LinearCache(1 << m_sets_log, log_block_size));
     }
+    Dbg("init done");
   }
 
 protected:
@@ -261,11 +263,12 @@ protected:
 private:
   // Look up the cache to decide whether the access is hit or missed
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
+    Dbg("lookup(0x%08x)", mem_addr);
     auto tag = getTag(mem_addr);
     auto index_group = getGroupIndex(mem_addr);
     auto index_set = getSetIndex(mem_addr);
     auto &set = sets[index_group];
-    return set.m_valids[index_set] && set.m_tags[index_set];
+    return set->m_valids[index_set] && set->m_tags[index_set] == tag;
   }
 
   // Access the cache: update m_replace_q if hit, otherwise replace a block and update m_replace_q
@@ -368,7 +371,7 @@ VOID Fini(INT32 code, VOID *v) {
   Log("%18s == RANKING ==", " ");
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
-  for (auto &r : results) {
+  for (auto &r: results) {
     Log("%24s : %.2f%%", r.first.c_str(), r.second);
   }
 }
@@ -395,9 +398,9 @@ int main(int argc, char *argv[]) {
 
   models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
   Dbg("init done: FullAssoCache");
-//
-//  models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-//  Dbg("init done: SetAssoCache");
+
+  models.emplace_back(new SetAssoCache(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  Dbg("init done: SetAssoCache");
 
   // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
   // Dbg("init done: SetAssoCache_VIVT");
