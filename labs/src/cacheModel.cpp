@@ -70,7 +70,7 @@ public:
   // Update the cache state whenever data is written
   void writeReq(UINT32 mem_addr) {
     m_wr_reqs++;
-    Dbg("W [%6lu] %08x", m_wr_reqs, mem_addr);
+    // Dbg("W [%6lu] %08x", m_wr_reqs, mem_addr);
     if (access(mem_addr)) m_wr_hits++;
   }
 
@@ -322,6 +322,8 @@ KNOB<UINT32> KnobSetsLog(KNOB_MODE_WRITEONCE, "pintool",
 // This knob will set the cache param m_asso
 KNOB<UINT32> KnobAssociativity(KNOB_MODE_WRITEONCE, "pintool",
                                "a", "4", "specify the m_asso");
+// This knob sets the output file name
+KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "cacheModels.txt", "specify the output file name");
 
 // Pin calls this function every time a new instruction is encountered
 VOID Instruction(INS ins, VOID *v) {
@@ -348,10 +350,14 @@ INT32 Usage() {
   return -1;
 }
 
+FILE *log_fp = nullptr;
+
 // argc, argv are the entire command line, including pin -t <toolname> -- ...
 int main(int argc, char *argv[]) {
   // Initialize pin
   if (PIN_Init(argc, argv)) return Usage();
+
+  log_fp = fopen(KnobOutputFile.Value().c_str(), "w");
 
   Log("Cache Model Test Program");
 
