@@ -65,6 +65,10 @@ public:
   }
 };
 
+class ReplaceAlgo {
+  
+};
+
 /**
  * Cache Model Base Class
  */
@@ -113,9 +117,9 @@ public:
     float hitRate = 100 * (float) (m_rd_hits + m_wr_hits) / (float) (m_wr_reqs + m_rd_reqs);
     float rdHitRate = 100 * (float) m_rd_hits / (float) m_rd_reqs;
     float wrHitRate = 100 * (float) m_wr_hits / (float) m_wr_reqs;
-    Log("model: %s, %.2f%%, %.2f KiB", name.c_str(), hitRate, (float) capacity() / 8 / 0x400);
-    Log("\t read req: %lu,\thit: %lu,\thit rate: %.2f%%", m_rd_reqs, m_rd_hits, rdHitRate);
-    Log("\twrite req: %lu,\thit: %lu,\thit rate: %.2f%%", m_wr_reqs, m_wr_hits, wrHitRate);
+    log_write("model: %s, %.4f%%, %.4f KiB\n", name.c_str(), hitRate, (float) capacity() / 8 / 0x400);
+    log_write("\t read req: %lu,\thit: %lu,\thit rate: %.4f%%\n", m_rd_reqs, m_rd_hits, rdHitRate);
+    log_write("\twrite req: %lu,\thit: %lu,\thit rate: %.4f%%\n", m_wr_reqs, m_wr_hits, wrHitRate);
     return hitRate;
   }
 
@@ -415,11 +419,11 @@ VOID Fini(INT32 code, VOID *v) {
     results.emplace_back(model->name, model->statistics());
     delete model;
   }
-  Log("%18s == RANKING ==", " ");
+  log_write("%26s == RANKING ==\n", " ");
   sort(results.begin(), results.end(),
        [](auto &a, auto &b) { return a.second > b.second; });
   for (auto &r: results) {
-    Log("%24s : %.2f%%", r.first.c_str(), r.second);
+    log_write("%32s : %.4f%%\n", r.first.c_str(), r.second);
   }
 }
 
