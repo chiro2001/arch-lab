@@ -317,11 +317,16 @@ public:
   UINT32 m_asso;
   vector<LinearCache *> sets;
   ReplaceAlgo **replace;
+  bool phy_index;
+  bool phy_tag;
 
   // Constructor
-  SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso, string name = "SetAssoCache") :
+  SetAssoCache(UINT32 sets_log, UINT32 log_block_size, UINT32 asso, string name = "SetAssoCache",
+               bool phy_index = false, bool phy_tag = false) :
       m_sets_log(sets_log), m_asso(asso),
       replace(nullptr),
+      phy_index(phy_index),
+      phy_tag(phy_tag),
       CacheModel(asso, log_block_size, std::move(name)) {
     Dbg("SetAssoCache(%u, %u, %u)", sets_log, log_block_size, asso);
     for (auto i = 0; i < m_asso; i++) {
@@ -370,8 +375,8 @@ protected:
 private:
   // Look up the cache to decide whether the access is hit or missed
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    auto tag = getTag(mem_addr);
-    auto index_set = getSetIndex(mem_addr);
+    auto tag = getTag(phy_tag ? get_phy_addr(mem_addr) : mem_addr);
+    auto index_set = getSetIndex(phy_index ? get_phy_addr(mem_addr) : mem_addr);
     for (int i = 0; i < sets.size(); i++) {
       auto &set = sets[i];
       auto r = set->m_valids[index_set] && set->m_tags[index_set] == tag;
@@ -387,8 +392,8 @@ private:
     if (lookup(mem_addr, blk_id)) {
       return true;
     }
-    auto tag = getTag(mem_addr);
-    auto index_set = getSetIndex(mem_addr);
+    auto tag = getTag(phy_tag ? get_phy_addr(mem_addr) : mem_addr);
+    auto index_set = getSetIndex(phy_index ? get_phy_addr(mem_addr) : mem_addr);
     LinearCache *empty_set = nullptr;
     for (auto &set: sets) {
       if (!set->m_valids[index_set]) {
@@ -418,10 +423,12 @@ private:
 /**
  * Set-Associative Cache Class (VIVT)
  */
-class SetAssoCache_VIVT : public SetAssoCache {
+class SetAsso_VIVT : public SetAssoCache {
 public:
-  SetAssoCache_VIVT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso,
-                                                                                     "SetAssoCache_VIVT") {}
+  SetAsso_VIVT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) :
+      SetAssoCache(setsLog, logBlockSize, asso,
+                   "SetAsso_VIVT",
+                   false, false) {}
 
 private:
 };
@@ -429,10 +436,12 @@ private:
 /**
  * Set-Associative Cache Class (PIPT)
  */
-class SetAssoCache_PIPT : public SetAssoCache {
+class SetAsso_PIPT : public SetAssoCache {
 public:
-  SetAssoCache_PIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso,
-                                                                                     "SetAssoCache_PIPT") {}
+  SetAsso_PIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) :
+      SetAssoCache(setsLog, logBlockSize, asso,
+                   "SetAsso_PIPT",
+                   true, true) {}
 
 private:
 };
@@ -440,10 +449,12 @@ private:
 /**
  * Set-Associative Cache Class (VIPT)
  */
-class SetAssoCache_VIPT : public SetAssoCache {
+class SetAsso_VIPT : public SetAssoCache {
 public:
-  SetAssoCache_VIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) : SetAssoCache(setsLog, logBlockSize, asso,
-                                                                                     "SetAssoCache_VIPT") {}
+  SetAsso_VIPT(UINT32 setsLog, UINT32 logBlockSize, UINT32 asso) :
+      SetAssoCache(setsLog, logBlockSize, asso,
+                   "SetAsso_VIPT",
+                   false, true) {}
 
 private:
 };
@@ -528,19 +539,31 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_MODEL(FullAssoCache(256, 6));
 
   APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), RandomRepl);
+
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 2), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(8, 6, 1), RandomRepl);
+
+  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 2), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(8, 6, 1), RandomRepl);
+
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(7, 6, 2), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(8, 6, 1), RandomRepl);
 
   APPEND_TEST_MODEL_REPLACE(SetAssoCache(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(7, 6, 2), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAssoCache(8, 6, 1), LRURepl);
 
-  // models.emplace_back(new SetAssoCache_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  // Dbg("init done: SetAssoCache_VIVT");
-  // models.emplace_back(new SetAssoCache_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  // Dbg("init done: SetAssoCache_PIPT");
-  // models.emplace_back(new SetAssoCache_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
-  // Dbg("init done: SetAssoCache_VIPT");
+  // models.emplace_back(new SetAsso_VIVT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  // Dbg("init done: SetAsso_VIVT");
+  // models.emplace_back(new SetAsso_PIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  // Dbg("init done: SetAsso_PIPT");
+  // models.emplace_back(new SetAsso_VIPT(KnobSetsLog.Value(), KnobBlockSizeLog.Value(), KnobAssociativity.Value()));
+  // Dbg("init done: SetAsso_VIPT");
 
   auto limit_bits = 32 * 8 * 0x400;
   for (auto const &m: models) {
