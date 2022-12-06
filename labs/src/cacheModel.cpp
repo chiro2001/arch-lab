@@ -107,7 +107,8 @@ public:
   bool *m_valids;
   UINT32 *m_tags;
   vector<UINT32> m_replace_q;    // Cache块替换的候选队列
-  LinearCache(UINT32 block_num, UINT32 log_block_size) : CacheModel(block_num, log_block_size) {
+  LinearCache(UINT32 block_num, UINT32 log_block_size) :
+      CacheModel(block_num, log_block_size, "DirectMappingCache") {
     m_valids = new bool[m_block_num];
     m_tags = new UINT32[m_block_num];
 
@@ -123,8 +124,7 @@ public:
   }
 
   UINT32 getTag(UINT32 addr) {
-    // return (addr >> m_blksz_log) & ((1 << m_block_num) - 1);
-    return addr >> m_blksz_log;
+    return (addr >> m_blksz_log) & (m_block_num - 1);
   }
 
 protected:
@@ -134,6 +134,11 @@ protected:
   }
 
   bool access(UINT32 mem_addr) override {
+    UINT32 blk_id = 0;
+    if (lookup(mem_addr, blk_id)) {
+      return true;
+    }
+    m_valids[getTag(mem_addr)] = true;
     return false;
   }
 
@@ -158,9 +163,13 @@ public:
   }
 
 private:
+  UINT32 getTag(UINT32 addr) {
+    return addr >> m_blksz_log;
+  }
+
   // Look up the cache to decide whether the access is hit or missed
   bool lookup(UINT32 mem_addr, UINT32 &blk_id) override {
-    UINT32 tag = inner.getTag(mem_addr);
+    UINT32 tag = getTag(mem_addr);
     for (int i = 0; i < m_block_num; i++) {
       if (inner.m_valids[i] && inner.m_tags[i] == tag) {
         blk_id = i;
@@ -183,7 +192,7 @@ private:
 
     // Replace the cache block...?
     inner.m_valids[bid_2be_replaced] = true;
-    inner.m_tags[bid_2be_replaced] = inner.getTag(mem_addr);
+    inner.m_tags[bid_2be_replaced] = getTag(mem_addr);
     updateReplaceQ(bid_2be_replaced);
 
     return false;
@@ -362,6 +371,9 @@ int main(int argc, char *argv[]) {
   log_fp = fopen(KnobOutputFile.Value().c_str(), "w");
 
   Log("Cache Model Test Program");
+
+  models.emplace_back(new DirectMappingCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
+  Dbg("init done: FullAssoCache");
 
   models.emplace_back(new FullAssoCache(KnobBlockNum.Value(), KnobBlockSizeLog.Value()));
   Dbg("init done: FullAssoCache");
