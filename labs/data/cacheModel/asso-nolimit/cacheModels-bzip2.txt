@@ -1,0 +1,7 @@
+|              model              |  miss rate  |    size   |
+| ------------------------------- |  ---------  | --------- |
+|SetAsso_PIPT(7, 6, 8)-RandomRepl | 1.20056915% | 67.38 KiB |
+|           FullAssoCache(256, 6) | 2.08818817% | 17.84 KiB |
+|      DirectMappingCache(256, 6) | 4.34986877% | 16.84 KiB |
+|SetAsso_PIPT(7, 6, 4)-RandomRepl | 6.80095673% | 33.69 KiB |
+|SetAsso_PIPT(7, 6, 2)-RandomRepl | 22.37660980% | 16.84 KiB |

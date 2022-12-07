@@ -14,6 +14,7 @@ using namespace std;
 typedef unsigned int UINT32;
 typedef unsigned long int UINT64;
 const bool verbose_statistics = false;
+#define ALLOW_OVERSIZE 1
 
 #define PAGE_SIZE_LOG       12
 #define PHY_MEM_SIZE_LOG    30
@@ -621,6 +622,22 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_MODEL(DirectMappingCache(256, 6));
   APPEND_TEST_MODEL(FullAssoCache(256, 6));
 
+  // capacity
+  APPEND_TEST_MODEL(DirectMappingCache(128, 6));
+  // APPEND_TEST_MODEL(DirectMappingCache(256, 6));
+  // APPEND_TEST_MODEL(DirectMappingCache(486, 6));
+  APPEND_TEST_MODEL(DirectMappingCache(512, 6));
+  APPEND_TEST_MODEL(FullAssoCache(128, 6));
+  // APPEND_TEST_MODEL(FullAssoCache(256, 6));
+  // APPEND_TEST_MODEL(FullAssoCache(458, 6));
+  APPEND_TEST_MODEL(FullAssoCache(512, 6));
+
+  // asso no limit
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 2), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 8), RandomRepl);
+
+  // vir / phy
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
   // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
@@ -628,7 +645,7 @@ int main(int argc, char *argv[]) {
   // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), LRURepl);
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
 
-  // Bigger block better
+  // block size: bigger block better
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), RandomRepl);
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), RandomRepl);
@@ -637,15 +654,23 @@ int main(int argc, char *argv[]) {
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), LRURepl);
 
   // algorithms
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), PLRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), FIFORepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), PLRURepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), FIFORepl);
 
   auto limit_bits = 32 * 8 * 0x400;
   for (auto const &m: models) {
-    Assert(m->capacity() < limit_bits, "%s size is larger than limit %.2f KiB! size is %.2f KiB", m->name.c_str(),
-           (float) limit_bits / 8 / 0x400, (float) m->capacity() / 8 / 0x400);
+    MUXDEF(ALLOW_OVERSIZE,
+           do {
+             if (m->capacity() > limit_bits) {
+               Dbg("%s size is larger than limit %.2f KiB! size is %.2f KiB", m->name.c_str(),
+                   (float) limit_bits / 8 / 0x400, (float) m->capacity() / 8 / 0x400);
+             }
+           } while (0),
+           Assert(m->capacity() <= limit_bits, "%s size is larger than limit %.2f KiB! size is %.2f KiB",
+                  m->name.c_str(),
+                  (float) limit_bits / 8 / 0x400, (float) m->capacity() / 8 / 0x400));
   }
 
   Dbg("%lu models init done", models.size());
