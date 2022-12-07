@@ -1,8 +1,0 @@
-|              model              |  miss rate  |    size   |
-| ------------------------------- |  ---------  | --------- |
-|           FullAssoCache(512, 6) | 1.10235596% | 35.69 KiB |
-|      DirectMappingCache(512, 6) | 2.81728363% | 33.69 KiB |
-|           FullAssoCache(256, 6) | 3.00259399% | 17.84 KiB |
-|           FullAssoCache(128, 6) | 4.93990326% |  8.92 KiB |
-|      DirectMappingCache(256, 6) | 5.28839111% | 16.84 KiB |
-|      DirectMappingCache(128, 6) | 8.49238586% |  8.42 KiB |

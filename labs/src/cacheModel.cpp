@@ -624,18 +624,17 @@ int main(int argc, char *argv[]) {
 
   // capacity
   APPEND_TEST_MODEL(DirectMappingCache(128, 6));
-  // APPEND_TEST_MODEL(DirectMappingCache(256, 6));
-  // APPEND_TEST_MODEL(DirectMappingCache(486, 6));
   APPEND_TEST_MODEL(DirectMappingCache(512, 6));
   APPEND_TEST_MODEL(FullAssoCache(128, 6));
-  // APPEND_TEST_MODEL(FullAssoCache(256, 6));
-  // APPEND_TEST_MODEL(FullAssoCache(458, 6));
   APPEND_TEST_MODEL(FullAssoCache(512, 6));
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
 
   // asso no limit
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 2), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 8), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 2), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 8), RandomRepl);
 
   // vir / phy
   // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);

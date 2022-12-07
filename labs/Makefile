@@ -1,4 +1,5 @@
-tests := bzip2 sjeng wrf sphinx3
+# tests := bzip2 sjeng wrf sphinx3
+tests := gcc astar zeusmp tonto
 extra_tests := coremark
 
 #TOOL ?= brchPredict
