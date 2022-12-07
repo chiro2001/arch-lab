@@ -5,34 +5,46 @@ extra_tests := coremark
 #TOOL ?= brchPredict
 TOOL ?= cacheModel
 
+base_dir := $(abspath .)
+
+SAVE ?= .
+
+CACHE_TEST ?= CAPACITY
+
 all: $(tests) $(extra_tests)
 
-build:
+build: configure
 	cmake --build build
 
 configure:
-	cmake -B build -S . -G Ninja
+	cmake -B build -S . -G Ninja -DCMAKE_CXX_FLAGS="-DTEST_$(CACHE_TEST)=1"
 
 build-prepare:
 	cmake -B build -S . -DCMAKE_CXX_FLAGS="-DPREPARING=1"
 	cmake --build build
 
 $(tests): build
-	# ./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- runspec --size=test --noreportable --nobuild $@
-	./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- runspec --size=test --noreportable $@
+	cd $(SAVE) && $(base_dir)/build/_deps/intelpin-src/pin -t $(base_dir)/build/lib$(TOOL).so -- runspec --size=test --noreportable $@
 
 prepare-%: build-prepare
-	./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- runspec --size=test --noreportable $*
+	cd $(SAVE) && $(base_dir)/build/_deps/intelpin-src/pin -t $(base_dir)/build/lib$(TOOL).so -- runspec --size=test --noreportable $*
 
 prepare: $(foreach t,$(tests),prepare-$(t))
 
 coremark: build
-	./build/_deps/intelpin-src/pin -t ./build/lib$(TOOL).so -- ../lab1/workspace/coremark.exe
+	cd $(SAVE) && $(base_dir)/build/_deps/intelpin-src/pin -t $(base_dir)/build/lib$(TOOL).so -- $(base_dir)/../lab1/workspace/coremark.exe
 
 stats:
-	python scripts/draw.py
+	python $(base_dir)/scripts/draw.py
+
+stats2:
+	python $(base_dir)/scripts/draw2.py
 
 clean:
 	-rm -rf build $(TOOL)*.txt
 
-.PHONY: build all coremark $(tests) clean
+cache:
+	mkdir -p $(base_dir)/data/cacheModel/$(CACHE_TEST)
+	$(MAKE) -C $(base_dir) SAVE=$(base_dir)/data/cacheModel/$(CACHE_TEST) CACHE_TEST=$(CACHE_TEST)
+
+.PHONY: build all coremark $(tests) clean stats stats2 prepare configure

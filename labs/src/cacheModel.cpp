@@ -623,6 +623,7 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_MODEL(FullAssoCache(256, 6));
 
   // capacity
+  #ifdef TEST_CAPACITY
   APPEND_TEST_MODEL(DirectMappingCache(128, 6));
   APPEND_TEST_MODEL(DirectMappingCache(512, 6));
   APPEND_TEST_MODEL(FullAssoCache(128, 6));
@@ -630,33 +631,43 @@ int main(int argc, char *argv[]) {
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 6, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  #endif
 
   // asso no limit
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 2), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 8), RandomRepl);
+  #ifdef TEST_ASSO
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 2), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 3), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 5), RandomRepl);
+  #endif
 
   // vir / phy
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), LRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
+  #ifdef TEST_PV
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
+  #endif
 
   // block size: bigger block better
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), LRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), LRURepl);
+  #ifdef TEST_BLOCK
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), LRURepl);
+  #endif
 
   // algorithms
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), PLRURepl);
-  // APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), FIFORepl);
+  #ifdef TEST_ALGO
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), PLRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), FIFORepl);
+  #endif
 
   auto limit_bits = 32 * 8 * 0x400;
   for (auto const &m: models) {
