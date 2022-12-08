@@ -1,0 +1,8 @@
+|              model              |  miss rate  |    size   |
+| ------------------------------- |  ---------  | --------- |
+|           FullAssoCache(512, 6) | 1.32496643% | 32.00 KiB |
+|      DirectMappingCache(512, 6) | 4.24634552% | 32.00 KiB |
+|   SetAsso_VIVT(7, 6, 4)-LRURepl | 5.93988800% | 32.00 KiB |
+|  SetAsso_VIVT(7, 6, 4)-PLRURepl | 5.93988800% | 32.00 KiB |
+|  SetAsso_VIVT(7, 6, 4)-FIFORepl | 5.93988800% | 32.00 KiB |
+|SetAsso_VIVT(7, 6, 4)-RandomRepl | 6.20854950% | 32.00 KiB |
