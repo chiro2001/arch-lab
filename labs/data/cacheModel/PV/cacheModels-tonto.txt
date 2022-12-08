@@ -7,5 +7,5 @@
 |SetAsso_VIVT(7, 6, 4)-RandomRepl | 5.79932404% | 32.00 KiB |
 |   SetAsso_VIPT(7, 6, 4)-LRURepl | 7.82917023% | 32.00 KiB |
 |   SetAsso_PIPT(7, 6, 4)-LRURepl | 7.82917023% | 32.00 KiB |
-|SetAsso_PIPT(7, 6, 4)-RandomRepl | 8.21352386% | 32.00 KiB |
 |SetAsso_VIPT(7, 6, 4)-RandomRepl | 8.21440125% | 32.00 KiB |
+|SetAsso_PIPT(7, 6, 4)-RandomRepl | 8.21352386% | 32.00 KiB |

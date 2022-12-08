@@ -61,13 +61,14 @@ def draw_ghr(data: dict):
     plt.show()
 
 
-def merge_data(data: dict) -> List:
+def merge_data(data: dict, sort_data: bool = True) -> List:
     result: List = None
-    for key in data:
-        d = list(data[key])
-        d = sorted(d, key=itemgetter(3, 2, 1))
-        # print('\n'.join([str(x) for x in d]))
-        data[key] = d
+    if sort_data:
+        for key in data:
+            d = list(data[key])
+            d = sorted(d, key=itemgetter(3, 2, 1))
+            # print('\n'.join([str(x) for x in d]))
+            data[key] = d
     # print(data)
     for test in data:
         if result is None:
@@ -97,17 +98,64 @@ def draw_capacity(data: dict, groups: List[str] = ['FullAssoCache', 'DirectMappi
     ax.set_ylabel("miss rate / %")
     for i in range(len(groups)):
         group = groups[i]
-        print(data_groups[group])
         x = [v[3] for v in data_groups[group]]
         y = [v[2] for v in data_groups[group]]
         label = group
         if 'SetAsso' in group:
             (args, method) = data_groups[group][0][:2]
-            label = group + f'''({", ".join(['n', *[str(a) for a in args[1:]]])})''' + (('-' + method) if method is not None else "")
+            label = group + f'''({", ".join(['n', *[str(a) for a in args[1:]]])})''' + (
+                ('-' + method) if method is not None else "")
         line, = ax.plot(x, y, label=label)
         plots.append(line)
     ax.legend(handles=plots)
-    plt.show()
+    plt.savefig(data_dir + "capacity.png")
+
+
+def draw_asso(data: dict, groups: List[str] = ['SetAsso_VIVT', ]):
+    data_groups = {g: [d[1:] for d in data if g in d[0]] for g in groups}
+    plots = []
+    fig, ax = plt.subplots()
+    ax.set_title("asso")
+    ax.set_xlabel("asso")
+    ax.set_ylabel("miss rate / %")
+    for i in range(len(groups)):
+        group = groups[i]
+        # print(data_groups[group])
+        x = [v[0][2] for v in data_groups[group]]
+        y = [v[2] for v in data_groups[group]]
+        label = group
+        if 'SetAsso' in group:
+            (args, method) = data_groups[group][0][:2]
+            label = group + f'''({", ".join([*[str(a) for a in args[:-1]], 'asso'])})''' + (
+                ('-' + method) if method is not None else "")
+        line, = ax.plot(x, y, label=label)
+        plots.append(line)
+    ax.legend(handles=plots)
+    plt.savefig(data_dir + "asso.png")
+
+
+def draw_block(data: dict, groups: List[str] = ['SetAsso_VIVT', ]):
+    data_groups = {g: [d[1:] for d in data if g in d[0]] for g in groups}
+    plots = []
+    fig, ax = plt.subplots()
+    ax.set_title("block")
+    ax.set_xlabel("$2^{block}$")
+    ax.set_ylabel("miss rate / %")
+    for i in range(len(groups)):
+        group = groups[i]
+        # print(data_groups[group])
+        x = [v[0][1] for v in data_groups[group]]
+        y = [v[2] for v in data_groups[group]]
+        label = group
+        if 'SetAsso' in group:
+            x = [2**xi for xi in x]
+            (args, method) = data_groups[group][0][:2]
+            label = group + f'''({", ".join([str(args[0]), 'block', str(args[2])])})''' + (
+                ('-' + method) if method is not None else "")
+        line, = ax.plot(x, y, label=label)
+        plots.append(line)
+    ax.legend(handles=plots)
+    plt.savefig(data_dir + "block.png")
 
 
 def load(pathname: str = '.', include_coremark: bool = True):
@@ -122,17 +170,22 @@ def load(pathname: str = '.', include_coremark: bool = True):
         if len(d) > 0:
             data[name] = d
     # draw_ghr(data)
-    data = merge_data(data)
+    data = merge_data(data, sort_data='PV' != pathname)
     # print(pathname, data)
     if pathname == 'CAPACITY':
-        draw_capacity(
-            data, groups=['FullAssoCache', 'DirectMappingCache', 'SetAsso_VIVT'])
+        draw_capacity(data)
+    elif pathname == 'ASSO':
+        draw_asso(data)
+    elif pathname == 'BLOCK':
+        draw_block(data)
 
 
 def run():
     cls = os.listdir(data_dir)
     for c in cls:
-        if 'PV' == c:
+        # if 'PV' == c:
+        #     continue
+        if '.' in c:
             continue
         load(c, include_coremark=False)
 
