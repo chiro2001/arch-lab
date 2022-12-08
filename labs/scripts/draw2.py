@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import os
 from typing import *
+from operator import itemgetter
 
 prefix = 'cacheModels-'
 suffix = '.txt'
@@ -18,11 +19,12 @@ def parse_one(base: str, name: str):
             model_name = model[:model.find('(')]
             model_args = model[model.find('(') + 1:model.find(')')]
             model_args = [int(a) for a in model_args.split(", ")]
-            model_method = model[model.find('-') + 1:] if '-' in model else None
+            model_method = model[model.find(
+                '-') + 1:] if '-' in model else None
             miss_rate = float(miss_rate[:-1])
             size = float(size.split()[0])
-            data.append((model_name, model_args,
-                        model_method, miss_rate, size))
+            data.append([model_name, model_args,
+                        model_method, miss_rate, size])
         # print(name, data)
         return data
 
@@ -58,18 +60,54 @@ def draw_ghr(data: dict):
     ax.legend(handles=plots)
     plt.show()
 
+
 def merge_data(data: dict) -> List:
     result: List = None
+    for key in data:
+        d = list(data[key])
+        d = sorted(d, key=itemgetter(3, 2, 1))
+        # print('\n'.join([str(x) for x in d]))
+        data[key] = d
+    # print(data)
     for test in data:
         if result is None:
             result = data[test]
         else:
+            # print("result:", result)
+            # print("data:", data[test])
             for i in range(len(result)):
-                print(result[i], data[test][i])
+                assert result[i][:3] == data[test][i][:
+                                                      3], f"test={test}, i={i}, {result[i][:3]} != {data[test][i][:3]}"
+                # print(result[i])
+                # print(result[i][3], data[test][i][3])
+                result[i] = [*result[i][:3], result[i]
+                             [3] + data[test][i][3], result[i][4]]
+                # result[i][3] = 0# = result[i][3] + data[test][i][3]
+    for i in range(len(result)):
+        result[i][3] /= len(result)
     return result
 
-def draw_data_group(data: dict, groups: List[str] = ['FullAssoCache', 'DirectMappingCache', 'SetAsso_VIVT']):
-    pass
+
+def draw_capacity(data: dict, groups: List[str] = ['FullAssoCache', 'DirectMappingCache', 'SetAsso_VIVT']):
+    data_groups = {g: [d[1:] for d in data if g in d[0]] for g in groups}
+    plots = []
+    fig, ax = plt.subplots()
+    ax.set_title("Capacity")
+    ax.set_xlabel("capacity / KiB")
+    ax.set_ylabel("miss rate / %")
+    for i in range(len(groups)):
+        group = groups[i]
+        print(data_groups[group])
+        x = [v[3] for v in data_groups[group]]
+        y = [v[2] for v in data_groups[group]]
+        label = group
+        if 'SetAsso' in group:
+            (args, method) = data_groups[group][0][:2]
+            label = group + f'''({", ".join(['n', *[str(a) for a in args[1:]]])})''' + (('-' + method) if method is not None else "")
+        line, = ax.plot(x, y, label=label)
+        plots.append(line)
+    ax.legend(handles=plots)
+    plt.show()
 
 
 def load(pathname: str = '.', include_coremark: bool = True):
@@ -80,15 +118,22 @@ def load(pathname: str = '.', include_coremark: bool = True):
     print(f"dir: {pathname} test names: {test_names}")
     data = {}
     for name in test_names:
-        data[name] = parse_one(data_dir + pathname, name)
-    # print(data)
+        d = parse_one(data_dir + pathname, name)
+        if len(d) > 0:
+            data[name] = d
     # draw_ghr(data)
     data = merge_data(data)
+    # print(pathname, data)
+    if pathname == 'CAPACITY':
+        draw_capacity(
+            data, groups=['FullAssoCache', 'DirectMappingCache', 'SetAsso_VIVT'])
 
 
 def run():
     cls = os.listdir(data_dir)
     for c in cls:
+        if 'PV' == c:
+            continue
         load(c, include_coremark=False)
 
 
