@@ -47,4 +47,11 @@ cache:
 	mkdir -p $(base_dir)/data/cacheModel/$(CACHE_TEST)
 	$(MAKE) -C $(base_dir) SAVE=$(base_dir)/data/cacheModel/$(CACHE_TEST) CACHE_TEST=$(CACHE_TEST)
 
+doxygen:
+	-rm -rf $(base_dir)/scripts/html
+	-rm -rf $(base_dir)/scripts/latex
+	cd $(base_dir)/src && doxygen $(base_dir)/scripts/doxygen.config
+	mv $(base_dir)/src/html $(base_dir)/scripts
+	mv $(base_dir)/src/latex $(base_dir)/scripts
+
 .PHONY: build all coremark $(tests) clean stats stats2 prepare configure

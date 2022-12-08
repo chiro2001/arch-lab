@@ -501,10 +501,11 @@ private:
     return false;
   }
 
-  // Update m_replace_q
-  void updateReplaceQ(UINT32 blk_id) override {
-    // TODO
-  }
+  /**
+   * replace queue is not stored here now
+   * @param blk_id
+   */
+  void updateReplaceQ(UINT32 blk_id) override {}
 };
 
 /**
