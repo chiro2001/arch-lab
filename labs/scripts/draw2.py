@@ -139,30 +139,29 @@ def draw_block(data: dict, groups: List[str] = ['SetAsso_VIVT', ]):
     plt.savefig(data_dir + "block.png")
 
 
-def write_pv(data: dict):
+def draw_pv(data: dict):
     data = [d for d in data if 'SetAsso' in d[0]]
-    vivt_random = [d[3] for d in data if 'VIVT' in d[0] and 'RandomRepl' == d[2]]
-    random = [vivt_random[0], 
-                [d[3] for d in data if 'VIPT' in d[0] and 'RandomRepl' == d[2]][0],
-                [d[3] for d in data if 'PIPT' in d[0] and 'RandomRepl' == d[2]][0],
-                ]
-    lru = [   [d[3] for d in data if 'VIVT' in d[0] and 'LRURepl' == d[2]][0],
-                [d[3] for d in data if 'VIPT' in d[0] and 'LRURepl' == d[2]][0],
-                [d[3] for d in data if 'PIPT' in d[0] and 'LRURepl' == d[2]][0],
-                ]
+    vivt_random = [d[3]
+                   for d in data if 'VIVT' in d[0] and 'RandomRepl' == d[2]]
+    random = [vivt_random[0],
+              [d[3] for d in data if 'VIPT' in d[0] and 'RandomRepl' == d[2]][0],
+              [d[3] for d in data if 'PIPT' in d[0] and 'RandomRepl' == d[2]][0],
+              ]
+    lru = [[d[3] for d in data if 'VIVT' in d[0] and 'LRURepl' == d[2]][0],
+           [d[3] for d in data if 'VIPT' in d[0] and 'LRURepl' == d[2]][0],
+           [d[3] for d in data if 'PIPT' in d[0] and 'LRURepl' == d[2]][0],
+           ]
     total_width, n = 0.8, 3
     width = total_width / n
-    print(random, lru)
+    # print(random, lru)
     size = 3
     fig, ax = plt.subplots()
     x = np.arange(size)
-    a = np.random.random(size)
-    b = np.random.random(size)
     ax.bar(x, random,  width=width, label='random')
     ax.bar(x + width, lru, width=width, label='lru')
     ax.set_title("Translate location")
     ax.set_xlabel("translate")
-    ax.set_ylabel("miss rate / %")    
+    ax.set_ylabel("miss rate / %")
     x_names = ["VIVT", "VIPT", "PIPT"]
     for i, ix in enumerate(x):
         ax.text(ix + 0.05, -0.15, x_names[i])
@@ -170,12 +169,30 @@ def write_pv(data: dict):
     plt.savefig(data_dir + "pv.png")
 
 
+def draw_algo(data: dict):
+    data = [d for d in data if 'SetAsso' in d[0]]
+    print(data)
+    width = 0.6
+    # print(random, lru)
+    size = 4
+    fig, ax = plt.subplots()
+    x = np.arange(size)
+    y = [d[3] for d in data]
+    ax.bar(x, y, width=width)
+    ax.set_title("Replacement algorithm")
+    ax.set_ylabel("miss rate / %")
+    x_names = [d[2].replace("Repl", "") for d in data]
+    for i, ix in enumerate(x):
+        ax.text(ix - 0.25, y[i] + 0.02, x_names[i])
+    plt.savefig(data_dir + "algo.png")
+
+
 def load(pathname: str = '.', include_coremark: bool = True):
     files = [f for f in os.listdir(data_dir + pathname) if f.startswith(prefix) and
              f.endswith(suffix) and
              (('coremark' not in f) if not include_coremark else True)]
     test_names = [f[len(prefix):-len(suffix)] for f in files]
-    print(f"dir: {pathname} test names: {test_names}")
+    # print(f"dir: {pathname} test names: {test_names}")
     data = {}
     for name in test_names:
         d = parse_one(data_dir + pathname, name)
@@ -191,7 +208,9 @@ def load(pathname: str = '.', include_coremark: bool = True):
     elif pathname == 'BLOCK':
         draw_block(data)
     elif pathname == 'PV':
-        write_pv(data)
+        draw_pv(data)
+    elif pathname == 'ALGO':
+        draw_algo(data)
 
 
 def run():
