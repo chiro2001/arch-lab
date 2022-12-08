@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import os
 from typing import *
 from operator import itemgetter
+import numpy as np
 
 prefix = 'cacheModels-'
 suffix = '.txt'
@@ -39,26 +40,6 @@ def parse_one(base: str, name: str):
 |      DirectMappingCache(256, 6) | 0.00042725% | 16.84 KiB |
 |      DirectMappingCache(128, 6) | 0.00077057% |  8.42 KiB |
 '''
-
-
-def draw_ghr(data: dict):
-    tests = list(data.keys())
-    l = len(data[tests[0]][0])
-
-    def get_width(config: str) -> int:
-        return int(config[config.find("(") + 1:-1].split(", ")[0])
-
-    plots = []
-    fig, ax = plt.subplots()
-    for i in range(len(tests)):
-        test = tests[i]
-        x = [get_width(v) for v in data[test][0]]
-        y = data[test][1]
-        print(x, y)
-        line, = ax.plot(x, y, label=test)
-        plots.append(line)
-    ax.legend(handles=plots)
-    plt.show()
 
 
 def merge_data(data: dict, sort_data: bool = True) -> List:
@@ -138,7 +119,7 @@ def draw_block(data: dict, groups: List[str] = ['SetAsso_VIVT', ]):
     data_groups = {g: [d[1:] for d in data if g in d[0]] for g in groups}
     plots = []
     fig, ax = plt.subplots()
-    ax.set_title("block")
+    ax.set_title("Block Size")
     ax.set_xlabel("$2^{block}$")
     ax.set_ylabel("miss rate / %")
     for i in range(len(groups)):
@@ -156,6 +137,37 @@ def draw_block(data: dict, groups: List[str] = ['SetAsso_VIVT', ]):
         plots.append(line)
     ax.legend(handles=plots)
     plt.savefig(data_dir + "block.png")
+
+
+def write_pv(data: dict):
+    data = [d for d in data if 'SetAsso' in d[0]]
+    vivt_random = [d[3] for d in data if 'VIVT' in d[0] and 'RandomRepl' == d[2]]
+    random = [vivt_random[0], 
+                [d[3] for d in data if 'VIPT' in d[0] and 'RandomRepl' == d[2]][0],
+                [d[3] for d in data if 'PIPT' in d[0] and 'RandomRepl' == d[2]][0],
+                ]
+    lru = [   [d[3] for d in data if 'VIVT' in d[0] and 'LRURepl' == d[2]][0],
+                [d[3] for d in data if 'VIPT' in d[0] and 'LRURepl' == d[2]][0],
+                [d[3] for d in data if 'PIPT' in d[0] and 'LRURepl' == d[2]][0],
+                ]
+    total_width, n = 0.8, 3
+    width = total_width / n
+    print(random, lru)
+    size = 3
+    fig, ax = plt.subplots()
+    x = np.arange(size)
+    a = np.random.random(size)
+    b = np.random.random(size)
+    ax.bar(x, random,  width=width, label='random')
+    ax.bar(x + width, lru, width=width, label='lru')
+    ax.set_title("Translate location")
+    ax.set_xlabel("translate")
+    ax.set_ylabel("miss rate / %")    
+    x_names = ["VIVT", "VIPT", "PIPT"]
+    for i, ix in enumerate(x):
+        ax.text(ix + 0.05, -0.15, x_names[i])
+    ax.legend()
+    plt.savefig(data_dir + "pv.png")
 
 
 def load(pathname: str = '.', include_coremark: bool = True):
@@ -178,6 +190,8 @@ def load(pathname: str = '.', include_coremark: bool = True):
         draw_asso(data)
     elif pathname == 'BLOCK':
         draw_block(data)
+    elif pathname == 'PV':
+        write_pv(data)
 
 
 def run():
