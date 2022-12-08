@@ -22,6 +22,19 @@ const bool verbose_statistics = false;
 #define get_vir_page_no(virtual_addr)   (virtual_addr >> PAGE_SIZE_LOG)
 #define get_page_offset(addr)           (addr & ((1u << PAGE_SIZE_LOG) - 1))
 
+#ifndef CONSIDER_DATA_ONLY
+#define CONSIDER_DATA_ONLY 1
+#endif
+
+UINT32 first_bit(UINT32 d) {
+  UINT32 r = 0;
+  while (d) {
+    r++;
+    d >>= 1;
+  }
+  return r;
+}
+
 // Obtain physical page number according to a given virtual page number
 UINT32 get_phy_page_no(UINT32 virtual_page_no) {
   UINT32 vpn = virtual_page_no;
@@ -96,12 +109,7 @@ public:
   }
 
   size_t capacity() override {
-    auto s = total;
-    size_t l = 0;
-    while (s) {
-      s >>= 1;
-      l++;
-    }
+    auto l = first_bit(total);
     if (l > 0) l--;
     return l * total;
   }
@@ -175,12 +183,7 @@ public:
   }
 
   size_t capacity() override {
-    auto s = total;
-    size_t l = 0;
-    while (s) {
-      s >>= 1;
-      l++;
-    }
+    size_t l = first_bit(total);
     if (l > 0) l--;
     return l;
   }
@@ -192,7 +195,7 @@ public:
 class CacheModel {
 protected:
   UINT32 m_block_num;     // The number of cache blocks
-  UINT32 m_blksz_log;     // 块大小的对数
+  UINT32 m_blksz_log;     // 块大小(byte)的对数
 
   UINT64 m_rd_reqs;       // The number of read-requests
   UINT64 m_wr_reqs;       // The number of write-requests
@@ -282,6 +285,8 @@ public:
     delete[] m_tags;
   }
 
+  // addr: [ TAG | INDEX | OFFSET ]
+
   UINT32 getTag(UINT32 addr) {
     return addr >> m_blksz_log;
   }
@@ -291,7 +296,11 @@ public:
   }
 
   size_t capacity() override {
-    return ((32 - m_blksz_log) + 1 + (1 << (m_blksz_log + 3))) * m_block_num;
+    return (
+               IFNDEF(CONSIDER_DATA_ONLY, 1 + (32 - m_blksz_log - first_bit(m_block_num)) +)
+               // data
+               (1 << (m_blksz_log + 3))
+           ) * m_block_num;
   }
 
 protected:
@@ -336,7 +345,7 @@ public:
   }
 
   size_t capacity() override {
-    return lru.capacity() + inner.capacity();
+    return MUXDEF(CONSIDER_DATA_ONLY, inner.capacity(), lru.capacity() + inner.capacity());
   }
 
 private:
@@ -423,7 +432,10 @@ public:
   size_t capacity() override {
     size_t s = 0;
     for (auto &set: sets) s += set->capacity();
-    // for (int i = 0; i < 1 << m_sets_log; i++) replace[i]->capacity();
+    #ifndef CONSIDER_DATA_ONLY
+    if (replace)
+      for (int i = 0; i < 1 << m_sets_log; i++) s += replace[i]->capacity();
+    #endif
     return s;
   }
 
@@ -619,18 +631,25 @@ int main(int argc, char *argv[]) {
 
   Dbg("Cache Model Test Program, log to file %s", filename.c_str());
 
-  APPEND_TEST_MODEL(DirectMappingCache(256, 6));
-  APPEND_TEST_MODEL(FullAssoCache(256, 6));
+  APPEND_TEST_MODEL(DirectMappingCache(512, 6));
+  APPEND_TEST_MODEL(FullAssoCache(512, 6));
+
+  // debug tests
+  #if !defined(TEST_CAPACITY) && !defined(TEST_ASSO) && !defined(TEST_BLOCK) && !defined(TEST_ALGO)
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  #endif
 
   // capacity
   #ifdef TEST_CAPACITY
   APPEND_TEST_MODEL(DirectMappingCache(128, 6));
-  APPEND_TEST_MODEL(DirectMappingCache(512, 6));
+  APPEND_TEST_MODEL(DirectMappingCache(256, 6));
+  APPEND_TEST_MODEL(DirectMappingCache(1024, 6));
   APPEND_TEST_MODEL(FullAssoCache(128, 6));
-  APPEND_TEST_MODEL(FullAssoCache(512, 6));
+  APPEND_TEST_MODEL(FullAssoCache(1024, 6));
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 6, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
   APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(8, 6, 4), RandomRepl);
   #endif
 
   // asso no limit
@@ -643,30 +662,27 @@ int main(int argc, char *argv[]) {
 
   // vir / phy
   #ifdef TEST_PV
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(6, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(7, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_PIPT(7, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIPT(7, 6, 4), LRURepl);
   #endif
 
   // block size: bigger block better
   #ifdef TEST_BLOCK
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 7, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(4, 8, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 7, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(5, 8, 4), RandomRepl);
   #endif
 
   // algorithms
   #ifdef TEST_ALGO
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), RandomRepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), LRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), PLRURepl);
-  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(6, 6, 4), FIFORepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), RandomRepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), LRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), PLRURepl);
+  APPEND_TEST_MODEL_REPLACE(SetAsso_VIVT(7, 6, 4), FIFORepl);
   #endif
 
   auto limit_bits = 32 * 8 * 0x400;

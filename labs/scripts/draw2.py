@@ -1,8 +1,10 @@
 from matplotlib import pyplot as plt
 import os
+from typing import *
 
 prefix = 'cacheModels-'
 suffix = '.txt'
+data_dir = "data/cacheModel/"
 
 
 def parse_one(base: str, name: str):
@@ -56,25 +58,38 @@ def draw_ghr(data: dict):
     ax.legend(handles=plots)
     plt.show()
 
+def merge_data(data: dict) -> List:
+    result: List = None
+    for test in data:
+        if result is None:
+            result = data[test]
+        else:
+            for i in range(len(result)):
+                print(result[i], data[test][i])
+    return result
 
-def load(path: str = '.', include_coremark: bool = True):
-    files = [f for f in os.listdir(path) if f.startswith(prefix) and
+def draw_data_group(data: dict, groups: List[str] = ['FullAssoCache', 'DirectMappingCache', 'SetAsso_VIVT']):
+    pass
+
+
+def load(pathname: str = '.', include_coremark: bool = True):
+    files = [f for f in os.listdir(data_dir + pathname) if f.startswith(prefix) and
              f.endswith(suffix) and
              (('coremark' not in f) if not include_coremark else True)]
     test_names = [f[len(prefix):-len(suffix)] for f in files]
-    print("test names:", test_names)
+    print(f"dir: {pathname} test names: {test_names}")
     data = {}
     for name in test_names:
-        data[name] = parse_one(path, name)
+        data[name] = parse_one(data_dir + pathname, name)
     # print(data)
     # draw_ghr(data)
+    data = merge_data(data)
 
 
 def run():
-    base = "data/cacheModel/"
-    cls = os.listdir(base)
+    cls = os.listdir(data_dir)
     for c in cls:
-        load(base + c)
+        load(c, include_coremark=False)
 
 
 if __name__ == '__main__':
