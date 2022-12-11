@@ -131,7 +131,7 @@ def draw_block(data: dict, groups: List[str] = ['SetAsso_VIVT', ]):
         if 'SetAsso' in group:
             x = [2**xi for xi in x]
             (args, method) = data_groups[group][0][:2]
-            label = group + f'''({", ".join([str(args[0]), 'block', str(args[2])])})''' + (
+            label = group + "(set_log, block, asso)" + (
                 ('-' + method) if method is not None else "")
         line, = ax.plot(x, y, label=label)
         plots.append(line)
@@ -171,7 +171,7 @@ def draw_pv(data: dict):
 
 def draw_algo(data: dict):
     data = [d for d in data if 'SetAsso' in d[0]]
-    print(data)
+    # print(data)
     width = 0.6
     # print(random, lru)
     size = 4
