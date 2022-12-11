@@ -19,7 +19,7 @@
 `/Makefile`：
 
 1. `make`  / `make submit`：生成提交包
-2. `make docs`：使用 $\LaTeX$ 编译实验文档
+2. `make docs`：编译实验文档
 
 `/labs/Makefile`：
 
