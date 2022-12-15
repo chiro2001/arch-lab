@@ -62,3 +62,5 @@ add_test(NAME brchPredict-coremark
         COMMAND ${PIN_DIR}/pin -t ${CMAKE_BINARY_DIR}/libbrchPredict.so -- ${PROJECT_SOURCE_DIR}/coremark.exe)
 
 add_executable(simple_test ${CMAKE_SOURCE_DIR}/src/simple_test.cpp)
+
+add_executable(cache_test ${CMAKE_SOURCE_DIR}/src/cache_test.cpp)
