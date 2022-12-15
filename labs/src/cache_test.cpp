@@ -37,25 +37,28 @@ void Clear_L2_Cache() {
 }
 
 double visit_array_in_size(size_t size) {
-  size_t loop = 0x2000;
+  size_t loop = 0x200;
   struct timeval start{}, stop{};
   // init data
-  Clear_L1_Cache();
+  // Clear_L1_Cache();
+  Clear_L2_Cache();
+  srand(time(nullptr));
   // for (auto i = 0; i < L2_cache_size; i++) array[i] = rand() & 0xFF;
-  gettimeofday(&start, nullptr);
   // loop read
   using UNIT = WORD;
   volatile UNIT r = 0;
   auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
+  gettimeofday(&start, nullptr);
   while (loop--) {
     auto sz = sz_one;
-    UNIT *p = (UNIT *) array;
+    volatile UNIT *p = (UNIT *) array;
     while (sz--) {
-      r += *(p++);
+      auto p2 = *(p++);
+      r = (r ^ p2) + p2;
     }
   }
-  // printf("r = %x\n", r);
   gettimeofday(&stop, nullptr);
+  // printf("r = %x\n", r);
   auto time_used = get_usec(start, stop);
   return time_used / (double) sz_one;
 }
@@ -73,16 +76,16 @@ double max_min_time_in_vector(vector<pair<size_t, double>> &vec, F f) {
 
 void display_pair_result(pair<size_t, double> &t) {
   if (t.first < MiB(1))
-    printf("%12lu KiB:\t%lf\n", t.first >> 10, t.second);
+    printf("%4lu KiB:\t%lf\n", t.first >> 10, t.second);
   else
-    printf("%12.1lf MiB:\t%lf\n", (double) (t.first) / (double) MiB(1), t.second);
+    printf("%4.1lf MiB:\t%lf\n", (double) (t.first) / (double) MiB(1), t.second);
 }
 
 void display_result_graph(vector<pair<size_t, double>> &vec) {
   auto max_time = max_min_time_in_vector(vec, [](double a, double b) { return a < b; });
   auto min_time = max_min_time_in_vector(vec, [](double a, double b) { return a > b; });
   for (auto &t: vec) {
-    auto max_len = 20;
+    auto max_len = 40;
     auto pos = (t.second - min_time) * max_len / (max_time - min_time);
     printf("[");
     for (int i = 0; i < pos; i++) printf(" ");
@@ -98,7 +101,7 @@ void Test_Cache_Size() {
   printf("Cache Size Test\n");
 
   vector<pair<size_t, double>> time;
-  for (auto i = 1; i <= 11; i++) {
+  for (auto i = 5; i <= 11; i++) {
     size_t sz = KiB(1 << i);
     time.emplace_back(sz, visit_array_in_size(sz));
     display_pair_result(time.back());
@@ -165,7 +168,6 @@ void Test_TLB_Size() {
 }
 
 int main() {
-  srand(time(nullptr));
   Test_Cache_Size();
   Test_L1C_Block_Size();
   // Test_L2C_Block_Size();
