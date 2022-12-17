@@ -8,6 +8,7 @@
 #include <ctime>
 #include <cstdint>
 #include <queue>
+#include <algorithm>
 #include "debug_macros.h"
 #include <sys/time.h>
 #include <sys/types.h>
@@ -40,6 +41,7 @@ void Clear_L2_Cache() {
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wregister"
+
 double visit_array_in_size(size_t size, size_t loop2_const) {
   const size_t loop_const = 0x200;
   size_t loop2 = loop2_const;
@@ -53,10 +55,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   using UNIT = WORD;
   const size_t min_max_count = 32;
   Assert(min_max_count < loop2_const, "loop2 must larger than min+max count");
-  priority_queue<double, vector<double>, greater<>> time_used_min, time_other_min;
-  double value_init = 0xffffff;
-  time_used_min.push(value_init);
-  time_other_min.push(value_init);
+  vector<double> time_used_min, time_other_min;
   auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
   while (loop2--) {
     gettimeofday(&start, nullptr);
@@ -73,10 +72,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     }
     gettimeofday(&stop, nullptr);
     auto time_used = get_usec(start, stop);
-    if (time_used_min.top() > time_used) {
-      // Log("time_used = %lf", time_used);
-      time_used_min.push(time_used);
-    }
+    time_used_min.emplace_back(time_used);
   }
   loop2 = loop2_const;
   while (loop2--) {
@@ -95,24 +91,22 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     gettimeofday(&stop, nullptr);
     // printf("r = %x\n", r);
     auto time_used = get_usec(start, stop);
-    if (time_other_min.top() > time_used) time_other_min.push(time_used);
+    time_other_min.emplace_back(time_used);
   }
   // calculate average
-  auto ave = [&](priority_queue<double, vector<double>, greater<>> &q) {
+  auto ave = [&](vector<double> &q) {
     double s = 0;
-    size_t c = 1;
     for (size_t i = 0; i < min_max_count; i++) {
-      if (q.top() + 1 >= value_init) break;
-      s += q.top();
-      // Log("use top: %lf", q.top());
-      q.pop();
-      c++;
+      // if (q.top() + 1 >= value_init) break;
+      s += q[i];
+      // Log("use top: %lf", q[i]);
     }
-    Assert(c != 1, "empty queue!");
-    auto r = s / (double) c;
+    auto r = s / (double) min_max_count;
     // Log("ave result %lf", r);
     return r;
   };
+  sort(time_used_min.begin(), time_used_min.end(), less<>());
+  sort(time_other_min.begin(), time_other_min.end(), less<>());
   auto time_used_min_ave = ave(time_used_min);
   auto time_other_min_ave = ave(time_other_min);
   if (time_other_min_ave > time_used_min_ave) {
@@ -120,6 +114,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   }
   return (abs(time_used_min_ave - time_other_min_ave)) / (double) sz_one;
 }
+
 #pragma clang diagnostic pop
 
 double visit_array_in_size(size_t size) {
