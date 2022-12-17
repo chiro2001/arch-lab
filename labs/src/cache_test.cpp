@@ -160,29 +160,28 @@ void Test_Cache_Size() {
   printf("Cache Size Test\n");
 
   vector<pair<size_t, double>> time;
-  // for (auto i = 5; i <= 11; i++) {
-  // for (auto i = 1; i < 5; i++) {
-  //   size_t sz = KiB(1 << i);
-  //   time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
-  //   display_pair_result(time.back());
-  //   sz = (size_t) ((double) (sz) * 1.5);
-  //   time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
-  //   display_pair_result(time.back());
-  // }
-  // for (auto i = 5; i <= 7; i++) {
-  //   size_t sz = KiB(1 << i);
-  //   time.emplace_back(sz, visit_array_in_size(sz));
-  //   display_pair_result(time.back());
-  //   sz = (size_t) ((double) (sz) * 1.5);
-  //   time.emplace_back(sz, visit_array_in_size(sz));
-  //   display_pair_result(time.back());
-  // }
-  for (auto i = 8; i <= 11; i++) {
+  for (auto i = 1; i < 5; i++) {
     size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x40));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
     display_pair_result(time.back());
     sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x40));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
+    display_pair_result(time.back());
+  }
+  for (auto i = 5; i <= 7; i++) {
+    size_t sz = KiB(1 << i);
+    time.emplace_back(sz, visit_array_in_size(sz));
+    display_pair_result(time.back());
+    sz = (size_t) ((double) (sz) * 1.5);
+    time.emplace_back(sz, visit_array_in_size(sz));
+    display_pair_result(time.back());
+  }
+  for (auto i = 8; i <= 11; i++) {
+    size_t sz = KiB(1 << i);
+    time.emplace_back(sz, visit_array_in_size(sz));
+    display_pair_result(time.back());
+    sz = (size_t) ((double) (sz) * 1.5);
+    time.emplace_back(sz, visit_array_in_size(sz));
     display_pair_result(time.back());
   }
 
