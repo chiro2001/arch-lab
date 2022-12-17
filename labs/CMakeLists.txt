@@ -65,4 +65,4 @@ add_executable(simple_test ${CMAKE_SOURCE_DIR}/src/simple_test.cpp)
 
 add_executable(cache_test ${CMAKE_SOURCE_DIR}/src/cache_test.cpp)
 
-target_compile_options(cache_test PRIVATE -Og)
+target_compile_options(cache_test PRIVATE -Og -fpermissive)

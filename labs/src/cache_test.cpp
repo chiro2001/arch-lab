@@ -7,6 +7,7 @@
 #include <vector>
 #include <ctime>
 #include <cstdint>
+#include <queue>
 #include "debug_macros.h"
 #include <sys/time.h>
 #include <sys/types.h>
@@ -37,8 +38,9 @@ void Clear_L2_Cache() {
   memset(array, 0, ARRAY_SIZE);
 }
 
-double visit_array_in_size(size_t size) {
-  const size_t loop2_const = 0x100;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wregister"
+double visit_array_in_size(size_t size, size_t loop2_const) {
   const size_t loop_const = 0x200;
   size_t loop2 = loop2_const;
   struct timeval start{}, stop{};
@@ -49,46 +51,80 @@ double visit_array_in_size(size_t size) {
   // for (auto i = 0; i < L2_cache_size; i++) array[i] = rand() & 0xFF;
   // loop read
   using UNIT = WORD;
-  double time_used_min = 0xffffff;
-  double time_other_min = 0xffffff;
+  const size_t min_max_count = 32;
+  Assert(min_max_count < loop2_const, "loop2 must larger than min+max count");
+  priority_queue<double, vector<double>, greater<>> time_used_min, time_other_min;
+  double value_init = 0xffffff;
+  time_used_min.push(value_init);
+  time_other_min.push(value_init);
   auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
   while (loop2--) {
     gettimeofday(&start, nullptr);
     size_t loop = loop_const;
     while (loop--) {
-      auto sz = sz_one;
-      volatile UNIT *p = (UNIT *) array;
+      register volatile size_t sz = sz_one;
+      register volatile UNIT *p = (UNIT *) array;
+      register volatile size_t r = 0x3f2f;
       while (sz--) {
-        // auto p2 = *(p++);
-        // r = (r ^ p2) + p2;
-        *(p++) = rand();
+        // register volatile auto r = rand();
+        *(p++) = r;
+        r = (r << 1) | (r >> (sizeof(r) * 8 - 1));
       }
     }
     gettimeofday(&stop, nullptr);
-    // printf("r = %x\n", r);
     auto time_used = get_usec(start, stop);
-    if (time_used_min > time_used) time_used_min = time_used;
+    if (time_used_min.top() > time_used) {
+      // Log("time_used = %lf", time_used);
+      time_used_min.push(time_used);
+    }
   }
   loop2 = loop2_const;
   while (loop2--) {
     gettimeofday(&start, nullptr);
     size_t loop = loop_const;
     while (loop--) {
-      auto sz = sz_one;
-      volatile UNIT *p = (UNIT *) array;
+      register volatile size_t sz = sz_one;
+      register volatile UNIT *p = (UNIT *) array;
+      register volatile size_t r = 0x3f2f;
       while (sz--) {
-        volatile auto r = rand();
+        // register volatile auto r = rand();
+        p++;
+        r = (r << 1) | (r >> (sizeof(r) * 8 - 1));
       }
     }
     gettimeofday(&stop, nullptr);
     // printf("r = %x\n", r);
     auto time_used = get_usec(start, stop);
-    if (time_other_min > time_used) time_other_min = time_used;
+    if (time_other_min.top() > time_used) time_other_min.push(time_used);
   }
-  if (time_other_min > time_used_min) {
-    Err("no data longer...");
+  // calculate average
+  auto ave = [&](priority_queue<double, vector<double>, greater<>> &q) {
+    double s = 0;
+    size_t c = 1;
+    for (size_t i = 0; i < min_max_count; i++) {
+      if (q.top() + 1 >= value_init) break;
+      s += q.top();
+      // Log("use top: %lf", q.top());
+      q.pop();
+      c++;
+    }
+    Assert(c != 1, "empty queue!");
+    auto r = s / (double) c;
+    // Log("ave result %lf", r);
+    return r;
+  };
+  auto time_used_min_ave = ave(time_used_min);
+  auto time_other_min_ave = ave(time_other_min);
+  if (time_other_min_ave > time_used_min_ave) {
+    Err("no data longer... time_other_min_ave=%lf, time_used_min_ave=%lf", time_other_min_ave, time_used_min_ave);
   }
-  return (abs(time_used_min - time_other_min)) / (double) sz_one;
+  return (abs(time_used_min_ave - time_other_min_ave)) / (double) sz_one;
+}
+#pragma clang diagnostic pop
+
+double visit_array_in_size(size_t size) {
+  const size_t loop2_const = 0x1000;
+  return visit_array_in_size(size, loop2_const);
 }
 
 template<typename F>
@@ -130,6 +166,14 @@ void Test_Cache_Size() {
 
   vector<pair<size_t, double>> time;
   // for (auto i = 5; i <= 11; i++) {
+  for (auto i = 1; i < 5; i++) {
+    size_t sz = KiB(1 << i);
+    time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
+    display_pair_result(time.back());
+    sz = (size_t) ((double) (sz) * 1.5);
+    time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
+    display_pair_result(time.back());
+  }
   for (auto i = 5; i <= 7; i++) {
     size_t sz = KiB(1 << i);
     time.emplace_back(sz, visit_array_in_size(sz));
