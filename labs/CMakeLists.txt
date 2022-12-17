@@ -35,7 +35,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Include Intel PIN targets (this should use find_package but this is easier sometimes)
 include(cmake/IntelPin.cmake)
 
-add_compile_options(-O3)
+#add_compile_options(-O3)
 
 CPMAddPackage(
         NAME debug_macros
@@ -64,3 +64,5 @@ add_test(NAME brchPredict-coremark
 add_executable(simple_test ${CMAKE_SOURCE_DIR}/src/simple_test.cpp)
 
 add_executable(cache_test ${CMAKE_SOURCE_DIR}/src/cache_test.cpp)
+
+target_compile_options(cache_test PRIVATE -Og)

@@ -7,6 +7,7 @@
 #include <vector>
 #include <ctime>
 #include <cstdint>
+#include "debug_macros.h"
 #include <sys/time.h>
 #include <sys/types.h>
 
@@ -37,7 +38,9 @@ void Clear_L2_Cache() {
 }
 
 double visit_array_in_size(size_t size) {
-  size_t loop = 0x200;
+  const size_t loop2_const = 0x100;
+  const size_t loop_const = 0x200;
+  size_t loop2 = loop2_const;
   struct timeval start{}, stop{};
   // init data
   // Clear_L1_Cache();
@@ -46,21 +49,46 @@ double visit_array_in_size(size_t size) {
   // for (auto i = 0; i < L2_cache_size; i++) array[i] = rand() & 0xFF;
   // loop read
   using UNIT = WORD;
-  volatile UNIT r = 0;
+  double time_used_min = 0xffffff;
+  double time_other_min = 0xffffff;
   auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
-  gettimeofday(&start, nullptr);
-  while (loop--) {
-    auto sz = sz_one;
-    volatile UNIT *p = (UNIT *) array;
-    while (sz--) {
-      auto p2 = *(p++);
-      r = (r ^ p2) + p2;
+  while (loop2--) {
+    gettimeofday(&start, nullptr);
+    size_t loop = loop_const;
+    while (loop--) {
+      auto sz = sz_one;
+      volatile UNIT *p = (UNIT *) array;
+      while (sz--) {
+        // auto p2 = *(p++);
+        // r = (r ^ p2) + p2;
+        *(p++) = rand();
+      }
     }
+    gettimeofday(&stop, nullptr);
+    // printf("r = %x\n", r);
+    auto time_used = get_usec(start, stop);
+    if (time_used_min > time_used) time_used_min = time_used;
   }
-  gettimeofday(&stop, nullptr);
-  // printf("r = %x\n", r);
-  auto time_used = get_usec(start, stop);
-  return time_used / (double) sz_one;
+  loop2 = loop2_const;
+  while (loop2--) {
+    gettimeofday(&start, nullptr);
+    size_t loop = loop_const;
+    while (loop--) {
+      auto sz = sz_one;
+      volatile UNIT *p = (UNIT *) array;
+      while (sz--) {
+        volatile auto r = rand();
+      }
+    }
+    gettimeofday(&stop, nullptr);
+    // printf("r = %x\n", r);
+    auto time_used = get_usec(start, stop);
+    if (time_other_min > time_used) time_other_min = time_used;
+  }
+  if (time_other_min > time_used_min) {
+    Err("no data longer...");
+  }
+  return (abs(time_used_min - time_other_min)) / (double) sz_one;
 }
 
 template<typename F>
@@ -101,7 +129,8 @@ void Test_Cache_Size() {
   printf("Cache Size Test\n");
 
   vector<pair<size_t, double>> time;
-  for (auto i = 5; i <= 11; i++) {
+  // for (auto i = 5; i <= 11; i++) {
+  for (auto i = 5; i <= 7; i++) {
     size_t sz = KiB(1 << i);
     time.emplace_back(sz, visit_array_in_size(sz));
     display_pair_result(time.back());
@@ -166,6 +195,8 @@ void Test_TLB_Size() {
 
   // TODO
 }
+
+FILE *log_fp = nullptr;
 
 int main() {
   Test_Cache_Size();
