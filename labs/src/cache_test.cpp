@@ -22,6 +22,7 @@ using namespace std;
 using BYTE = uint8_t;                    // define BYTE as one-byte type
 using WORD = uint32_t;                   // define WORD as quad-byte type
 
+const size_t loop_const = 0x200;
 BYTE array[ARRAY_SIZE];                      // test array
 const int L2_cache_size = 1 << 22;
 
@@ -43,7 +44,6 @@ void Clear_L2_Cache() {
 #pragma clang diagnostic ignored "-Wregister"
 
 double visit_array_in_size(size_t size, size_t loop2_const) {
-  const size_t loop_const = 0x200;
   size_t loop2 = loop2_const;
   struct timeval start{}, stop{};
   // init data
@@ -65,9 +65,9 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
       register volatile UNIT *p = (UNIT *) array;
       register volatile size_t r = 0x3f2f;
       while (sz--) {
-        // register volatile auto r = rand();
+        register volatile auto pp = *p;
         *(p++) = r;
-        r = (r << 1) | (r >> (sizeof(r) * 8 - 1));
+        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1))) ^ pp;
       }
     }
     gettimeofday(&stop, nullptr);
@@ -83,7 +83,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
       register volatile UNIT *p = (UNIT *) array;
       register volatile size_t r = 0x3f2f;
       while (sz--) {
-        // register volatile auto r = rand();
+        // register volatile auto pp = *p;
         p++;
         r = (r << 1) | (r >> (sizeof(r) * 8 - 1));
       }
@@ -135,9 +135,9 @@ double max_min_time_in_vector(vector<pair<size_t, double>> &vec, F f) {
 
 void display_pair_result(pair<size_t, double> &t) {
   if (t.first < MiB(1))
-    printf("%4lu KiB:\t%lf\n", t.first >> 10, t.second);
+    printf("%4lu KiB:\t%.2lf us\n", t.first >> 10, t.second * 1000000 / loop_const);
   else
-    printf("%4.1lf MiB:\t%lf\n", (double) (t.first) / (double) MiB(1), t.second);
+    printf("%4.1lf MiB:\t%.2lf us\n", (double) (t.first) / (double) MiB(1), t.second * 1000000 / loop_const);
 }
 
 void display_result_graph(vector<pair<size_t, double>> &vec) {
@@ -160,30 +160,39 @@ void Test_Cache_Size() {
   printf("Cache Size Test\n");
 
   vector<pair<size_t, double>> time;
-  for (auto i = 1; i < 5; i++) {
+  size_t level0 = 4;
+  size_t level1 = 6;
+  // warm up
+  Log("warming up");
+  for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
+    visit_array_in_size(sz, 0x1000);
+  }
+  Log("warm up done");
+  for (auto i = level0; i < level1; i++) {
+    size_t sz = KiB(1 << i);
+    time.emplace_back(sz, visit_array_in_size(sz, 0x400 * (level1 - i)));
     display_pair_result(time.back());
     sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x1000 * 4));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x400 * (level1 - i)));
     display_pair_result(time.back());
   }
-  for (auto i = 5; i <= 7; i++) {
-    size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz));
-    display_pair_result(time.back());
-    sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz));
-    display_pair_result(time.back());
-  }
-  for (auto i = 8; i <= 11; i++) {
-    size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz));
-    display_pair_result(time.back());
-    sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz));
-    display_pair_result(time.back());
-  }
+  // for (auto i = 5; i <= 7; i++) {
+  //   size_t sz = KiB(1 << i);
+  //   time.emplace_back(sz, visit_array_in_size(sz));
+  //   display_pair_result(time.back());
+  //   sz = (size_t) ((double) (sz) * 1.5);
+  //   time.emplace_back(sz, visit_array_in_size(sz));
+  //   display_pair_result(time.back());
+  // }
+  // for (auto i = 8; i <= 11; i++) {
+  //   size_t sz = KiB(1 << i);
+  //   time.emplace_back(sz, visit_array_in_size(sz));
+  //   display_pair_result(time.back());
+  //   sz = (size_t) ((double) (sz) * 1.5);
+  //   time.emplace_back(sz, visit_array_in_size(sz));
+  //   display_pair_result(time.back());
+  // }
 
   display_result_graph(time);
 }
