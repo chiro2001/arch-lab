@@ -41,88 +41,20 @@ void Clear_L2_Cache() {
   memset(array, 0, ARRAY_SIZE);
 }
 
-double visit_array_in_size(size_t size, size_t loop2_const) {
-  struct timeval start{}, stop{};
-  // init data
-  // Clear_L1_Cache();
-  Clear_L2_Cache();
-  srand(time(nullptr));
-  // for (auto i = 0; i < L2_cache_size; i++) array[i] = rand() & 0xFF;
-  // for (auto i = 0; i < size; i++) array[i] = rand() & 0xFF;
-  // loop read
-  using UNIT = WORD;
-  size_t min_max_count = 32;
-  if (min_max_count > loop2_const) {
-    min_max_count = loop2_const;
-  }
-  // Assert(min_max_count <= loop2_const, "loop2(0x%zx) must larger than min+max count(0x%zx)", loop2_const,
-  //        min_max_count);
-  vector<double> time_used_min, time_other_min;
-  auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
-  // generate a random list
-  // const auto random_list_sz = 19;
-  // auto random_list = new size_t[random_list_sz];
-  // for (int i = 0; i < random_list_sz; i++) random_list[i] = rand();
-  const uint32_t access = loop_const * (sz_one / 2048);
-  size_t loop2 = loop2_const;
-  while (loop2--) {
-    gettimeofday(&start, nullptr);
-    register size_t loop = loop_const;
-    register uint32_t a = 0;
-    while (loop--) {
-      for (register uint32_t index = 1; index < sz_one; index += 2048) {
-        array[index] = index + 1;
-        a++;
-      }
-    }
-    gettimeofday(&stop, nullptr);
-    auto time_used = get_usec(start, stop);
-    time_used_min.emplace_back(time_used);
-  }
-  loop2 = loop2_const;
-  while (loop2--) {
-    gettimeofday(&start, nullptr);
-    size_t loop = loop_const;
-    register uint32_t a = 0;
-    while (loop--) {
-      for (register uint32_t index = 1; index < sz_one; index += 2048) {
-        // array[index] = index + 1;
-        a++;
-      }
-    }
-    gettimeofday(&stop, nullptr);
-    auto time_used = get_usec(start, stop);
-    time_other_min.emplace_back(time_used);
-  }
-  // calculate average
-  auto ave = [&](vector<double> &q) {
-    double s = 0;
-    for (size_t i = 0; i < min_max_count; i++) {
-      // if (q.top() + 1 >= value_init) break;
-      s += q[i];
-      // Log("use top: %lf", q[i]);
-    }
-    auto r = s / (double) min_max_count;
-    // Log("ave result %lf", r);
-    return r;
-  };
-  sort(time_used_min.begin(), time_used_min.end(), less<>());
-  sort(time_other_min.begin(), time_other_min.end(), less<>());
-  auto time_used_min_ave = ave(time_used_min);
-  auto time_other_min_ave = ave(time_other_min);
-  if (time_other_min_ave > time_used_min_ave) {
-    Err("no data(size=0x%zx, loop=0x%zx)... time_other_min_ave=%lf, time_used_min_ave=%lf",
-        size, loop2_const,
-        time_other_min_ave, time_used_min_ave);
-    // let's retry
-    return visit_array_in_size(size, loop2_const);
-  }
-  return (abs(time_used_min_ave - time_other_min_ave)) / (double) access;
-}
-
 double visit_array_in_size(size_t size) {
-  const size_t loop2_const = 0x1000;
-  return visit_array_in_size(size, loop2_const);
+  struct timeval tp[2];
+  Clear_L2_Cache();
+  register uint32_t access = 0;
+  gettimeofday(&tp[0], nullptr);
+  for (register int k = 0; k < 200000; k++) {
+    for (register uint32_t index = 1; index < size; index += 2048) {
+      array[index] = index + 1;
+      access++;
+    }
+  }
+  gettimeofday(&tp[1], nullptr);
+  auto time_used = get_usec(tp[0], tp[1]);
+  return time_used / (double) access;
 }
 
 template<typename F>
@@ -163,32 +95,23 @@ void Test_Cache_Size() {
   printf("Cache Size Test\n");
 
   vector<pair<size_t, double>> time;
-  size_t level0 = 4;
-  // size_t level0 = 1;
-  size_t level1 = 8;
-  size_t level1_5 = 9;
-  size_t level2 = 12;
+  size_t level0 = 1;
+  size_t level1 = 13;
   // warm up
-  Log("warming up");
+  // Log("warming up");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    visit_array_in_size(sz, 0x40);
+    visit_array_in_size(sz);
   }
-  Log("warm up done");
+  // Log("warm up done");
   for (auto i = level0; i < level1; i++) {
-    size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x400 * (level1 - i)));
-    display_pair_result(time.back());
-    sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x400 * (level1 - i)));
-    display_pair_result(time.back());
-  }
-  for (auto i = level1_5; i < level2; i++) {
     size_t sz = KiB(1 << i);
     time.emplace_back(sz, visit_array_in_size(sz));
-    display_pair_result(time.back());
+    // display_pair_result(time.back());
+    sz = (size_t) ((double) (sz) * 1.5);
+    time.emplace_back(sz, visit_array_in_size(sz));
+    // display_pair_result(time.back());
   }
-
   display_result_graph(time);
 }
 
