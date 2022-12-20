@@ -23,7 +23,7 @@ using BYTE = uint8_t;                    // define BYTE as one-byte type
 using WORD = uint32_t;                   // define WORD as quad-byte type
 
 // const size_t loop_const = 0x40;
-const size_t loop_const = 0x200;
+const size_t loop_const = 200000;
 BYTE array[ARRAY_SIZE];                      // test array
 const int L2_cache_size = 1 << 22;
 
@@ -42,14 +42,13 @@ void Clear_L2_Cache() {
 }
 
 double visit_array_in_size(size_t size, size_t loop2_const) {
-  size_t loop2 = loop2_const;
   struct timeval start{}, stop{};
   // init data
   // Clear_L1_Cache();
   Clear_L2_Cache();
   srand(time(nullptr));
   // for (auto i = 0; i < L2_cache_size; i++) array[i] = rand() & 0xFF;
-  for (auto i = 0; i < size; i++) array[i] = rand() & 0xFF;
+  // for (auto i = 0; i < size; i++) array[i] = rand() & 0xFF;
   // loop read
   using UNIT = WORD;
   size_t min_max_count = 32;
@@ -64,26 +63,16 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   // const auto random_list_sz = 19;
   // auto random_list = new size_t[random_list_sz];
   // for (int i = 0; i < random_list_sz; i++) random_list[i] = rand();
+  const uint32_t access = loop_const * (sz_one / 2048);
+  size_t loop2 = loop2_const;
   while (loop2--) {
     gettimeofday(&start, nullptr);
-    size_t loop = loop_const;
+    register size_t loop = loop_const;
+    register uint32_t a = 0;
     while (loop--) {
-      register size_t sz = sz_one;
-      register size_t s = 0;
-      register UNIT *p = (UNIT *) array;
-      register size_t r = 0x3f2f;
-      // register size_t r1 = 1;//, r2 = 2;
-      while (sz--) {
-        // auto pp = *p;
-        // r1 = random_list[(r2 + r) % random_list_sz];
-        // r2 = random_list[(r1 + r) % random_list_sz];
-        // *(p++) = r ^ (r1 ^ r2);
-        // r1 = rand();
-        // auto t = r ^ r1;
-        // auto &t = r1;
-        *(p++) = sz ^ r;
-        s++;
-        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1))) + r;
+      for (register uint32_t index = 1; index < sz_one; index += 2048) {
+        array[index] = index + 1;
+        a++;
       }
     }
     gettimeofday(&stop, nullptr);
@@ -94,28 +83,14 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   while (loop2--) {
     gettimeofday(&start, nullptr);
     size_t loop = loop_const;
+    register uint32_t a = 0;
     while (loop--) {
-      register size_t sz = sz_one;
-      register size_t s = 0;
-      register UNIT *p = (UNIT *) array;
-      register size_t r = 0x3f2f;
-      // register size_t r1 = 1;//, r2 = 2;
-      while (sz--) {
-        // auto pp = *p;
-        // r1 = random_list[(r2 + r) % random_list_sz];
-        // r2 = random_list[(r1 + r) % random_list_sz];
-        // *(p++) = r ^ (r1 ^ r2);
-        // r1 = rand();
-        // auto t = r ^ r1;
-        // auto &t = r1;
-        p++;
-        s++;
-        // s += t;
-        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1))) + r;
+      for (register uint32_t index = 1; index < sz_one; index += 2048) {
+        // array[index] = index + 1;
+        a++;
       }
     }
     gettimeofday(&stop, nullptr);
-    // printf("r = %x\n", r);
     auto time_used = get_usec(start, stop);
     time_other_min.emplace_back(time_used);
   }
@@ -142,7 +117,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     // let's retry
     return visit_array_in_size(size, loop2_const);
   }
-  return (abs(time_used_min_ave - time_other_min_ave)) / (double) sz_one;
+  return (abs(time_used_min_ave - time_other_min_ave)) / (double) access;
 }
 
 double visit_array_in_size(size_t size) {
@@ -163,9 +138,9 @@ double max_min_time_in_vector(vector<pair<size_t, double>> &vec, F f) {
 
 void display_pair_result(pair<size_t, double> &t) {
   if (t.first < MiB(1))
-    printf("%4lu KiB:\t%.2lf us\n", t.first >> 10, t.second * 1000000 / loop_const);
+    printf("%4lu KiB:\t%.8lf us\n", t.first >> 10, t.second * 1000000 / loop_const);
   else
-    printf("%4.1lf MiB:\t%.2lf us\n", (double) (t.first) / (double) MiB(1), t.second * 1000000 / loop_const);
+    printf("%4.1lf MiB:\t%.8lf us\n", (double) (t.first) / (double) MiB(1), t.second * 1000000 / loop_const);
 }
 
 void display_result_graph(vector<pair<size_t, double>> &vec) {
@@ -197,7 +172,7 @@ void Test_Cache_Size() {
   Log("warming up");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    visit_array_in_size(sz, 0x100);
+    visit_array_in_size(sz, 0x40);
   }
   Log("warm up done");
   for (auto i = level0; i < level1; i++) {

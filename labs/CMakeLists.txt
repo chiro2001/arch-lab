@@ -64,5 +64,7 @@ add_test(NAME brchPredict-coremark
 add_executable(simple_test ${CMAKE_SOURCE_DIR}/src/simple_test.cpp)
 
 add_executable(cache_test ${CMAKE_SOURCE_DIR}/src/cache_test.cpp)
+add_executable(cache_test_copy ${CMAKE_SOURCE_DIR}/src/cache_test_copy.cpp)
 
 target_compile_options(cache_test PRIVATE -Og -fpermissive)
+target_compile_options(cache_test_copy PRIVATE -Og -fpermissive)
