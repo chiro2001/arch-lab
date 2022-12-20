@@ -62,4 +62,21 @@ L1 DCache Way Count Test
 **************************************************************
 TLB Size Test
 
-进程已结束,退出代码0
+**************************************************************
+L1 DCache Block Size Test
+Block  16 B:	0.01355700 us
+Block  24 B:	0.01348041 us
+Block  32 B:	0.01352642 us
+Block  48 B:	0.01363537 us
+Block  64 B:	0.01367396 us
+Block  96 B:	0.01405285 us
+Block 128 B:	0.01435758 us
+Block 192 B:	0.01426335 us
+[    #                                     ] Block  16 B:	0.01355700 us
+[#                                         ] Block  24 B:	0.01348041 us
+[   #                                      ] Block  32 B:	0.01352642 us
+[        #                                 ] Block  48 B:	0.01363537 us
+[         #                                ] Block  64 B:	0.01367396 us
+[                           #              ] Block  96 B:	0.01405285 us
+[                                        # ] Block 128 B:	0.01435758 us
+[                                    #     ] Block 192 B:	0.01426335 us

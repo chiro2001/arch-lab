@@ -78,7 +78,7 @@ void display_size_result(pair<size_t, double> &t) {
 }
 
 void display_block_result(pair<size_t, double> &t) {
-  printf("Block %2lu B:\t%.8lf us\n", t.first, t.second * 1000000 / loop_const);
+  printf("Block %3lu B:\t%.8lf us\n", t.first, t.second * 1000000 / loop_const);
 }
 
 template<typename F>
@@ -129,9 +129,9 @@ double visit_array_in_range(size_t m, size_t size) {
   Clear_L2_Cache();
   register uint32_t access = 0;
   gettimeofday(&tp[0], nullptr);
-  for (register int k = 0; k < loop_const / 100; k++) {
-    for (register auto m2 = 1; m2 <= m; m2++) {
-      for (register uint32_t index = 0; index < size; index += m) {
+  for (register int k = 0; k < loop_const; k++) {
+    for (register auto m2 = 1; m2 <= m / 2; m2++) {
+      for (register uint32_t index = m2; index < size; index += m) {
         array[index] = index + 1;
         access++;
       }
@@ -144,6 +144,8 @@ double visit_array_in_range(size_t m, size_t size) {
 
 double visit_array_in_range(size_t m) {
   return visit_array_in_range(m, cache_l1_size);
+  // return visit_array_in_range(m, cache_l1_size / 8);
+  // return visit_array_in_range(m, KiB(1));
 }
 
 void Test_L1C_Block_Size() {
@@ -151,8 +153,8 @@ void Test_L1C_Block_Size() {
   printf("L1 DCache Block Size Test\n");
 
   vector<pair<size_t, double>> time;
-  size_t level0 = 0;
-  size_t level1 = 7;
+  size_t level0 = 4;
+  size_t level1 = 8;
   // warm up
   for (auto i = level0; i < level1; i++) {
     size_t m = 1 << i;
