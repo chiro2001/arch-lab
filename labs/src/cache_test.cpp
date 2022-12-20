@@ -22,6 +22,7 @@ using namespace std;
 using BYTE = uint8_t;                    // define BYTE as one-byte type
 using WORD = uint32_t;                   // define WORD as quad-byte type
 
+// const size_t loop_const = 0x40;
 const size_t loop_const = 0x200;
 BYTE array[ARRAY_SIZE];                      // test array
 const int L2_cache_size = 1 << 22;
@@ -48,23 +49,31 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   Clear_L2_Cache();
   srand(time(nullptr));
   // for (auto i = 0; i < L2_cache_size; i++) array[i] = rand() & 0xFF;
+  for (auto i = 0; i < size; i++) array[i] = rand() & 0xFF;
   // loop read
   using UNIT = WORD;
   const size_t min_max_count = 32;
-  Assert(min_max_count < loop2_const, "loop2 must larger than min+max count");
+  Assert(min_max_count <= loop2_const, "loop2(0x%zx) must larger than min+max count(0x%zx)", loop2_const, min_max_count);
   vector<double> time_used_min, time_other_min;
   auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
+  // generate a random list
+  const auto random_list_sz = 19;
+  auto random_list = new size_t[random_list_sz];
+  for (int i = 0; i < random_list_sz; i++) random_list[i] = rand();
   while (loop2--) {
     gettimeofday(&start, nullptr);
     size_t loop = loop_const;
     while (loop--) {
-      volatile size_t sz = sz_one;
-      volatile UNIT *p = (UNIT *) array;
-      volatile size_t r = 0x3f2f;
+      size_t sz = sz_one;
+      UNIT *p = (UNIT *) array;
+      size_t r = 0x3f2f;
+      size_t r1 = 1, r2 = 2;
       while (sz--) {
-        volatile auto pp = *p;
-        *(p++) = r;
-        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1))) ^ pp;
+        // auto pp = *p;
+        // r1 = random_list[(r2 + r) % random_list_sz];
+        // r2 = random_list[(r1 + r) % random_list_sz];
+        *(p++) = r ^ (r1 ^ r2);
+        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
       }
     }
     gettimeofday(&stop, nullptr);
@@ -76,13 +85,16 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     gettimeofday(&start, nullptr);
     size_t loop = loop_const;
     while (loop--) {
-      volatile size_t sz = sz_one;
-      volatile UNIT *p = (UNIT *) array;
-      volatile size_t r = 0x3f2f;
+      size_t sz = sz_one;
+      UNIT *p = (UNIT *) array;
+      size_t r = 0x3f2f;
+      size_t r1 = 1, r2 = 2;
       while (sz--) {
-        //  volatile auto pp = *p;
-        p++;
-        r = (r << 1) | (r >> (sizeof(r) * 8 - 1));
+        // auto pp = *p;
+        // r1 = random_list[(r2 + r) % random_list_sz];
+        // r2 = random_list[(r1 + r) % random_list_sz];
+        // *(p++) = r ^ (r1 ^ r2);
+        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
       }
     }
     gettimeofday(&stop, nullptr);
@@ -113,7 +125,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
 }
 
 double visit_array_in_size(size_t size) {
-  const size_t loop2_const = 0x1000;
+  const size_t loop2_const = 0x40;
   return visit_array_in_size(size, loop2_const);
 }
 
@@ -156,21 +168,22 @@ void Test_Cache_Size() {
 
   vector<pair<size_t, double>> time;
   size_t level0 = 4;
+  // size_t level0 = 1;
   size_t level1 = 8;
   size_t level2 = 11;
   // warm up
   Log("warming up");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    visit_array_in_size(sz, 0x200);
+    visit_array_in_size(sz, 0x20);
   }
   Log("warm up done");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x800 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
     display_pair_result(time.back());
     sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x800 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
     display_pair_result(time.back());
   }
   for (auto i = level1; i < level2; i++) {
@@ -183,6 +196,17 @@ void Test_Cache_Size() {
   }
 
   display_result_graph(time);
+}
+
+const size_t cache_l1_size = KiB(48);
+
+double visit_array_in_range(size_t m, size_t size) {
+  Clear_L1_Cache();
+  return 0;
+}
+
+double visit_array_in_range(size_t m) {
+  return visit_array_in_range(m, 0x1000);
 }
 
 void Test_L1C_Block_Size() {
