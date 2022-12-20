@@ -23,7 +23,7 @@ using BYTE = uint8_t;                    // define BYTE as one-byte type
 using WORD = uint32_t;                   // define WORD as quad-byte type
 
 // const size_t loop_const = 0x40;
-const size_t loop_const = 0x20;
+const size_t loop_const = 0x200;
 BYTE array[ARRAY_SIZE];                      // test array
 const int L2_cache_size = 1 << 22;
 
@@ -69,21 +69,21 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     size_t loop = loop_const;
     while (loop--) {
       register size_t sz = sz_one;
-      // register size_t s = 0;
+      register size_t s = 0;
       register UNIT *p = (UNIT *) array;
-      // register size_t r = 0x3f2f;
-      register size_t r1 = 1;//, r2 = 2;
+      register size_t r = 0x3f2f;
+      // register size_t r1 = 1;//, r2 = 2;
       while (sz--) {
         // auto pp = *p;
         // r1 = random_list[(r2 + r) % random_list_sz];
         // r2 = random_list[(r1 + r) % random_list_sz];
         // *(p++) = r ^ (r1 ^ r2);
-        r1 = rand();
+        // r1 = rand();
         // auto t = r ^ r1;
-        auto &t = r1;
-        *(p++) = t;
-        // s += t;
-        // r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
+        // auto &t = r1;
+        *(p++) = sz ^ r;
+        s++;
+        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1))) + r;
       }
     }
     gettimeofday(&stop, nullptr);
@@ -96,21 +96,22 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     size_t loop = loop_const;
     while (loop--) {
       register size_t sz = sz_one;
-      // register size_t s = 0;
+      register size_t s = 0;
       register UNIT *p = (UNIT *) array;
-      // register size_t r = 0x3f2f;
-      register size_t r1 = 1;//, r2 = 2;
+      register size_t r = 0x3f2f;
+      // register size_t r1 = 1;//, r2 = 2;
       while (sz--) {
         // auto pp = *p;
         // r1 = random_list[(r2 + r) % random_list_sz];
         // r2 = random_list[(r1 + r) % random_list_sz];
         // *(p++) = r ^ (r1 ^ r2);
-        r1 = rand();
+        // r1 = rand();
         // auto t = r ^ r1;
-        auto &t = r1;
+        // auto &t = r1;
         p++;
+        s++;
         // s += t;
-        // r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
+        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1))) + r;
       }
     }
     gettimeofday(&stop, nullptr);
@@ -190,7 +191,7 @@ void Test_Cache_Size() {
   size_t level0 = 4;
   // size_t level0 = 1;
   size_t level1 = 8;
-  size_t level1_5 = 10;
+  size_t level1_5 = 9;
   size_t level2 = 12;
   // warm up
   Log("warming up");
