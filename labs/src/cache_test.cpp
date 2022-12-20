@@ -191,7 +191,7 @@ void Test_Cache_Size() {
   // size_t level0 = 1;
   size_t level1 = 8;
   size_t level1_5 = 10;
-  size_t level2 = 11;
+  size_t level2 = 12;
   // warm up
   Log("warming up");
   for (auto i = level0; i < level1; i++) {
