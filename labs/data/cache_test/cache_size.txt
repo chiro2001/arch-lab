@@ -63,3 +63,26 @@ L1 DCache Block Size Test
 L1 DCache Way Count Test
 **************************************************************
 TLB Size Test
+
+**************************************************************
+Cache Size Test
+[/home/chiro/programs/arch-lab/labs/src/cache_test.cpp:185 Test_Cache_Size] warming up
+[/home/chiro/programs/arch-lab/labs/src/cache_test.cpp:132 visit_array_in_size] no data longer... time_other_min_ave=46045.468750, time_used_min_ave=45390.875000
+[/home/chiro/programs/arch-lab/labs/src/cache_test.cpp:190 Test_Cache_Size] warm up done
+  16 KiB:	8.64 us
+  24 KiB:	20.49 us
+  32 KiB:	18.62 us
+[/home/chiro/programs/arch-lab/labs/src/cache_test.cpp:132 visit_array_in_size] no data longer... time_other_min_ave=45097.937500, time_used_min_ave=45019.843750
+  48 KiB:	41.67 us
+  64 KiB:	229.76 us
+  96 KiB:	228.42 us
+ 128 KiB:	13.26 us
+ 192 KiB:	296.65 us
+[#                                         ]   16 KiB:	8.64 us
+[  #                                       ]   24 KiB:	20.49 us
+[  #                                       ]   32 KiB:	18.62 us
+[     #                                    ]   48 KiB:	41.67 us
+[                               #          ]   64 KiB:	229.76 us
+[                               #          ]   96 KiB:	228.42 us
+[ #                                        ]  128 KiB:	13.26 us
+[                                        # ]  192 KiB:	296.65 us

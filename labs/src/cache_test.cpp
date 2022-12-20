@@ -52,8 +52,12 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   for (auto i = 0; i < size; i++) array[i] = rand() & 0xFF;
   // loop read
   using UNIT = WORD;
-  const size_t min_max_count = 32;
-  Assert(min_max_count <= loop2_const, "loop2(0x%zx) must larger than min+max count(0x%zx)", loop2_const, min_max_count);
+  size_t min_max_count = 32;
+  if (min_max_count > loop2_const) {
+    min_max_count = loop2_const;
+  }
+  // Assert(min_max_count <= loop2_const, "loop2(0x%zx) must larger than min+max count(0x%zx)", loop2_const,
+  //        min_max_count);
   vector<double> time_used_min, time_other_min;
   auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
   // generate a random list
@@ -65,14 +69,19 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     size_t loop = loop_const;
     while (loop--) {
       size_t sz = sz_one;
+      size_t s = 0;
       UNIT *p = (UNIT *) array;
       size_t r = 0x3f2f;
       size_t r1 = 1, r2 = 2;
       while (sz--) {
-        // auto pp = *p;
+        auto pp = *p;
         // r1 = random_list[(r2 + r) % random_list_sz];
         // r2 = random_list[(r1 + r) % random_list_sz];
-        *(p++) = r ^ (r1 ^ r2);
+        // *(p++) = r ^ (r1 ^ r2);
+        r1 = rand();
+        auto t = r ^ r1;
+        *(p++) = t;
+        s += t;
         r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
       }
     }
@@ -88,12 +97,16 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
       size_t sz = sz_one;
       UNIT *p = (UNIT *) array;
       size_t r = 0x3f2f;
+      size_t s = 0;
       size_t r1 = 1, r2 = 2;
       while (sz--) {
         // auto pp = *p;
         // r1 = random_list[(r2 + r) % random_list_sz];
         // r2 = random_list[(r1 + r) % random_list_sz];
         // *(p++) = r ^ (r1 ^ r2);
+        r1 = rand();
+        auto t = r ^ r1;
+        s += t;
         r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
       }
     }
@@ -119,13 +132,17 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   auto time_used_min_ave = ave(time_used_min);
   auto time_other_min_ave = ave(time_other_min);
   if (time_other_min_ave > time_used_min_ave) {
-    Err("no data longer... time_other_min_ave=%lf, time_used_min_ave=%lf", time_other_min_ave, time_used_min_ave);
+    Err("no data(size=0x%zx, loop=0x%zx)... time_other_min_ave=%lf, time_used_min_ave=%lf",
+        size, loop2_const,
+        time_other_min_ave, time_used_min_ave);
+    // let's retry
+    return visit_array_in_size(size, loop2_const);
   }
   return (abs(time_used_min_ave - time_other_min_ave)) / (double) sz_one;
 }
 
 double visit_array_in_size(size_t size) {
-  const size_t loop2_const = 0x40;
+  const size_t loop2_const = 0x4;
   return visit_array_in_size(size, loop2_const);
 }
 
@@ -175,15 +192,15 @@ void Test_Cache_Size() {
   Log("warming up");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    visit_array_in_size(sz, 0x20);
+    visit_array_in_size(sz, 0x2);
   }
   Log("warm up done");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x4 * (level1 - i)));
     display_pair_result(time.back());
     sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x4 * (level1 - i)));
     display_pair_result(time.back());
   }
   for (auto i = level1; i < level2; i++) {
