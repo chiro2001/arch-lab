@@ -145,7 +145,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
 }
 
 double visit_array_in_size(size_t size) {
-  const size_t loop2_const = 0x40;
+  const size_t loop2_const = 0x1000;
   return visit_array_in_size(size, loop2_const);
 }
 
@@ -196,15 +196,15 @@ void Test_Cache_Size() {
   Log("warming up");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    visit_array_in_size(sz, 0x10);
+    visit_array_in_size(sz, 0x100);
   }
   Log("warm up done");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x400 * (level1 - i)));
     display_pair_result(time.back());
     sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x400 * (level1 - i)));
     display_pair_result(time.back());
   }
   for (auto i = level1_5; i < level2; i++) {
