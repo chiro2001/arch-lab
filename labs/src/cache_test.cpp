@@ -23,7 +23,7 @@ using BYTE = uint8_t;                    // define BYTE as one-byte type
 using WORD = uint32_t;                   // define WORD as quad-byte type
 
 // const size_t loop_const = 0x40;
-const size_t loop_const = 0x200;
+const size_t loop_const = 0x20;
 BYTE array[ARRAY_SIZE];                      // test array
 const int L2_cache_size = 1 << 22;
 
@@ -61,28 +61,29 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
   vector<double> time_used_min, time_other_min;
   auto sz_one = size / (sizeof(UNIT) / sizeof(BYTE));
   // generate a random list
-  const auto random_list_sz = 19;
-  auto random_list = new size_t[random_list_sz];
-  for (int i = 0; i < random_list_sz; i++) random_list[i] = rand();
+  // const auto random_list_sz = 19;
+  // auto random_list = new size_t[random_list_sz];
+  // for (int i = 0; i < random_list_sz; i++) random_list[i] = rand();
   while (loop2--) {
     gettimeofday(&start, nullptr);
     size_t loop = loop_const;
     while (loop--) {
-      size_t sz = sz_one;
-      size_t s = 0;
-      UNIT *p = (UNIT *) array;
-      size_t r = 0x3f2f;
-      size_t r1 = 1, r2 = 2;
+      register size_t sz = sz_one;
+      // register size_t s = 0;
+      register UNIT *p = (UNIT *) array;
+      // register size_t r = 0x3f2f;
+      register size_t r1 = 1;//, r2 = 2;
       while (sz--) {
-        auto pp = *p;
+        // auto pp = *p;
         // r1 = random_list[(r2 + r) % random_list_sz];
         // r2 = random_list[(r1 + r) % random_list_sz];
         // *(p++) = r ^ (r1 ^ r2);
         r1 = rand();
-        auto t = r ^ r1;
+        // auto t = r ^ r1;
+        auto &t = r1;
         *(p++) = t;
-        s += t;
-        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
+        // s += t;
+        // r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
       }
     }
     gettimeofday(&stop, nullptr);
@@ -94,20 +95,22 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
     gettimeofday(&start, nullptr);
     size_t loop = loop_const;
     while (loop--) {
-      size_t sz = sz_one;
-      UNIT *p = (UNIT *) array;
-      size_t r = 0x3f2f;
-      size_t s = 0;
-      size_t r1 = 1, r2 = 2;
+      register size_t sz = sz_one;
+      // register size_t s = 0;
+      register UNIT *p = (UNIT *) array;
+      // register size_t r = 0x3f2f;
+      register size_t r1 = 1;//, r2 = 2;
       while (sz--) {
         // auto pp = *p;
         // r1 = random_list[(r2 + r) % random_list_sz];
         // r2 = random_list[(r1 + r) % random_list_sz];
         // *(p++) = r ^ (r1 ^ r2);
         r1 = rand();
-        auto t = r ^ r1;
-        s += t;
-        r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
+        // auto t = r ^ r1;
+        auto &t = r1;
+        p++;
+        // s += t;
+        // r = ((r << 1) | (r >> (sizeof(r) * 8 - 1)));
       }
     }
     gettimeofday(&stop, nullptr);
@@ -142,7 +145,7 @@ double visit_array_in_size(size_t size, size_t loop2_const) {
 }
 
 double visit_array_in_size(size_t size) {
-  const size_t loop2_const = 0x4;
+  const size_t loop2_const = 0x40;
   return visit_array_in_size(size, loop2_const);
 }
 
@@ -187,27 +190,25 @@ void Test_Cache_Size() {
   size_t level0 = 4;
   // size_t level0 = 1;
   size_t level1 = 8;
+  size_t level1_5 = 10;
   size_t level2 = 11;
   // warm up
   Log("warming up");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    visit_array_in_size(sz, 0x2);
+    visit_array_in_size(sz, 0x10);
   }
   Log("warm up done");
   for (auto i = level0; i < level1; i++) {
     size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x4 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
     display_pair_result(time.back());
     sz = (size_t) ((double) (sz) * 1.5);
-    time.emplace_back(sz, visit_array_in_size(sz, 0x4 * (level1 - i)));
+    time.emplace_back(sz, visit_array_in_size(sz, 0x40 * (level1 - i)));
     display_pair_result(time.back());
   }
-  for (auto i = level1; i < level2; i++) {
+  for (auto i = level1_5; i < level2; i++) {
     size_t sz = KiB(1 << i);
-    time.emplace_back(sz, visit_array_in_size(sz));
-    display_pair_result(time.back());
-    sz = (size_t) ((double) (sz) * 1.5);
     time.emplace_back(sz, visit_array_in_size(sz));
     display_pair_result(time.back());
   }
