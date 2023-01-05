@@ -134,10 +134,10 @@ int main() {
 
   // Fulfill test array
   memset(test_array, 5, sizeof(test_array));
-  Test_Cache_Size();
-  Test_L1C_Block_Size();
+  // Test_Cache_Size();
+  // Test_L1C_Block_Size();
   Test_L1C_Way_Count();
-  Test_TLB_Size();
+  // Test_TLB_Size();
 
   return 0;
 }

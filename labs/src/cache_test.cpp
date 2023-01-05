@@ -84,6 +84,10 @@ void display_block_result(pair<size_t, double> &t) {
   printf("Block %3lu B:\t%.8lf us\n", t.first, t.second * 1000000 / loop_const);
 }
 
+void display_way_result(pair<size_t, double> &t) {
+  printf("Way %3lu:\t%.8lf us\n", t.first, t.second * 1000000 / loop_const);
+}
+
 template<typename F>
 void display_result_graph(vector<pair<size_t, double>> &vec, F f) {
   auto max_time = max_min_time_in_vector(vec, [](double a, double b) { return a < b; });
@@ -185,11 +189,43 @@ void Test_L2C_Block_Size() {
   // TODO
 }
 
+double visit_array_way(size_t w) {
+  struct timeval tp[2];
+  Clear_L2_Cache();
+  register uint32_t access = 0;
+  gettimeofday(&tp[0], nullptr);
+  for (register int k = 0; k < loop_const / 128; k++) {
+    for (register uint32_t index = 0; index < (1 << w); index += 1) {
+      array[(index << 15) & (ARRAY_SIZE - 1)] = index + 1;
+      access++;
+    }
+  }
+  gettimeofday(&tp[1], nullptr);
+  auto time_used = get_usec(tp[0], tp[1]);
+  return time_used / (double) access;
+}
+
 void Test_L1C_Way_Count() {
   printf("**************************************************************\n");
   printf("L1 DCache Way Count Test\n");
 
-  // TODO
+  vector<pair<size_t, double>> time;
+  size_t level0 = 1;
+  size_t level1 = 9;
+  // warm up
+  for (auto i = level0; i < level1; i++) {
+    size_t m = 1 << i;
+    visit_array_way(m);
+  }
+  for (auto i = level0; i < level1; i++) {
+    size_t m = 1 << i;
+    time.emplace_back(m, visit_array_way(i));
+    // display_block_result(time.back());
+    // m = (size_t) ((double) (m) * 1.5);
+    // time.emplace_back(m, visit_array_way(m));
+    // display_block_result(time.back());
+  }
+  display_result_graph(time, display_way_result);
 }
 
 void Test_L2C_Way_Count() {
@@ -226,7 +262,7 @@ FILE *log_fp = nullptr;
 
 int main() {
   // Test_Cache_Size();
-  Test_L1C_Block_Size();
+  // Test_L1C_Block_Size();
   // Test_L2C_Block_Size();
   Test_L1C_Way_Count();
   // Test_L2C_Way_Count();
