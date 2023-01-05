@@ -286,7 +286,7 @@ void Test_TLB_Size() {
   // warm up
   for (auto i = level0; i < level1; i++) {
     size_t m = 1 << i;
-    visit_array_way(m);
+    visit_tlb_size(m);
   }
   for (auto i = level0; i < level1; i++) {
     size_t m = 1 << i;
