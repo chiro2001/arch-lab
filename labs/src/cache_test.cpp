@@ -40,7 +40,10 @@ void Clear_L1_Cache() {
 
 // have access to arrays with ARRAY_SIZE to clear the L2 cache
 void Clear_L2_Cache() {
-  memset(array, 0, ARRAY_SIZE);
+  // memset(array, 0, ARRAY_SIZE);
+  for (auto a: array) {
+    a++;
+  }
 }
 
 double visit_array_in_size(size_t size) {
@@ -129,21 +132,23 @@ double visit_array_in_range(size_t m, size_t size) {
   Clear_L2_Cache();
   register uint32_t access = 0;
   gettimeofday(&tp[0], nullptr);
-  for (register int k = 0; k < loop_const; k++) {
-    for (register auto m2 = 1; m2 <= m / 2; m2++) {
-      for (register uint32_t index = m2; index < size; index += m) {
-        array[index] = index + 1;
-        access++;
-      }
-    }
+  // for (register int k = 0; k < loop_const; k++) {
+  // for (register auto m2 = 1; m2 <= m / 2; m2++) {
+  //   for (register uint32_t index = m2; index < size; index += m) {
+  for (register uint32_t index = 0; index < size; index += m) {
+    array[index] = index + 1;
+    access++;
   }
+  // }
+  // }
   gettimeofday(&tp[1], nullptr);
   auto time_used = get_usec(tp[0], tp[1]);
   return time_used / (double) access;
 }
 
 double visit_array_in_range(size_t m) {
-  return visit_array_in_range(m, cache_l1_size);
+  // return visit_array_in_range(m, cache_l1_size);
+  return visit_array_in_range(m, MiB(1));
   // return visit_array_in_range(m, cache_l1_size / 8);
   // return visit_array_in_range(m, KiB(1));
 }
@@ -153,8 +158,8 @@ void Test_L1C_Block_Size() {
   printf("L1 DCache Block Size Test\n");
 
   vector<pair<size_t, double>> time;
-  size_t level0 = 4;
-  size_t level1 = 8;
+  size_t level0 = 1;
+  size_t level1 = 9;
   // warm up
   for (auto i = level0; i < level1; i++) {
     size_t m = 1 << i;
@@ -163,10 +168,10 @@ void Test_L1C_Block_Size() {
   for (auto i = level0; i < level1; i++) {
     size_t m = 1 << i;
     time.emplace_back(m, visit_array_in_range(m));
-    display_block_result(time.back());
-    m = (size_t) ((double) (m) * 1.5);
-    time.emplace_back(m, visit_array_in_range(m));
-    display_block_result(time.back());
+    // display_block_result(time.back());
+    // m = (size_t) ((double) (m) * 1.5);
+    // time.emplace_back(m, visit_array_in_range(m));
+    // display_block_result(time.back());
   }
   display_result_graph(time, display_block_result);
 }
