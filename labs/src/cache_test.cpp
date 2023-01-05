@@ -297,10 +297,10 @@ void Test_TLB_Size() {
 FILE *log_fp = nullptr;
 
 int main() {
-  // Test_Cache_Size();
-  // Test_L1C_Block_Size();
+  Test_Cache_Size();
+  Test_L1C_Block_Size();
   // Test_L2C_Block_Size();
-  // Test_L1C_Way_Count();
+  Test_L1C_Way_Count();
   // Test_L2C_Way_Count();
   // Test_Cache_Write_Policy();
   // Test_Cache_Swap_Method();
